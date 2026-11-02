@@ -32,10 +32,12 @@ object WeatherClient {
 
     suspend fun searchPlaces(query: String): List<Place> = withContext(Dispatchers.IO) {
         val q = URLEncoder.encode(query.trim(), "UTF-8")
-        val body = get("https://geocoding-api.open-meteo.com/v1/search?name=$q&count=8&language=en&format=json")
-        json.decodeFromString<GeoResponse>(body).results.map { r ->
-            Place(r.name, r.latitude, r.longitude, listOfNotNull(r.admin1, r.country).distinct().joinToString(", "))
-        }
+        parsePlaces(get("https://geocoding-api.open-meteo.com/v1/search?name=$q&count=8&language=en&format=json"))
+    }
+
+    /** Reads a place-search reply. Kept apart from the download so it can be tested on saved replies. */
+    internal fun parsePlaces(body: String): List<Place> = json.decodeFromString<GeoResponse>(body).results.map { r ->
+        Place(r.name, r.latitude, r.longitude, listOfNotNull(r.admin1, r.country).distinct().joinToString(", "))
     }
 
     private suspend fun fetch(lat: Double, lon: Double, range: String): HourlyForecast = withContext(Dispatchers.IO) {
@@ -44,7 +46,12 @@ object WeatherClient {
         // hour wrong after the clocks change.
         val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&hourly=$HOURLY" +
             "&timezone=auto&timeformat=unixtime&$range"
-        val response = json.decodeFromString<ForecastResponse>(get(url))
+        parseForecast(get(url))
+    }
+
+    /** Reads a forecast reply. Kept apart from the download so it can be tested on saved replies. */
+    internal fun parseForecast(body: String): HourlyForecast {
+        val response = json.decodeFromString<ForecastResponse>(body)
         val zone = runCatching { ZoneId.of(response.timezone) }.getOrDefault(ZoneId.systemDefault())
         val h = response.hourly
         val hours = h.time.indices.mapNotNull { i ->
@@ -61,7 +68,7 @@ object WeatherClient {
                 isDay = (h.isDay.getOrNull(i) ?: 1) == 1,
             )
         }
-        HourlyForecast(zone, hours)
+        return HourlyForecast(zone, hours)
     }
 
     private fun get(url: String): String {

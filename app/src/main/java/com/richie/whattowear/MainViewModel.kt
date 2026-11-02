@@ -130,7 +130,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setReminder(on: Boolean) {
         reminderOn = on
         settings.reminderOn = on
-        Reminders.schedule(getApplication(), restart = true)
+        viewModelScope.launch(Dispatchers.IO) { Reminders.schedule(getApplication(), restart = true) }
     }
 
     /** Starts a log from the widget or the reminder: "Now", with the score and clothes already chosen. */

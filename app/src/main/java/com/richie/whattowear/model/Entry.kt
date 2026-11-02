@@ -31,9 +31,21 @@ data class Entry(
 ) {
     val items: List<ClothingItem> get() = itemIds.mapNotNull(Wardrobe::byId)
 
-    // Rows from before the app have no weather, so they count as dry and not sunny.
-    val rainy: Boolean get() = Regex("rain|drizzle|shower|thunder|snow", RegexOption.IGNORE_CASE).containsMatchIn(weather)
-    val sunny: Boolean get() = !rainy && !weather.contains("night", ignoreCase = true) &&
-        (weather.contains("sunny", ignoreCase = true) || weather.startsWith("Clear", ignoreCase = true) ||
-            weather.startsWith("Mostly clear", ignoreCase = true))
+    /**
+     * When in the day this log ends, in minutes after midnight, for putting a day's logs in order.
+     * Comparing the text would put "morning" after "14:35", because letters sort after numbers.
+     */
+    val endsAtMinute: Int get() = when (whenLabel.lowercase()) {
+        "morning" -> 12 * 60
+        "afternoon" -> 18 * 60
+        "all day" -> 22 * 60
+        "evening" -> 24 * 60
+        else -> Regex("""(\d{1,2}):(\d{2})""").matchEntire(whenLabel)
+            ?.destructured?.let { (h, m) -> h.toInt() * 60 + m.toInt() } ?: -1
+    }
+
+    // Rows from before the app have no weather, so they count as dry and not sunny. See WeatherSummary.words().
+    val rainy: Boolean get() = Regex("rain|drizzle|shower|thunder|snow", RegexOption.IGNORE_CASE).containsMatchIn(weather) &&
+        !weather.contains("mostly dry", ignoreCase = true)
+    val sunny: Boolean get() = !rainy && weather.contains("sunny", ignoreCase = true)
 }

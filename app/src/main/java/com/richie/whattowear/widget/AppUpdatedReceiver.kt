@@ -17,15 +17,15 @@ class AppUpdatedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         val pending = goAsync()
-        CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
                 WearWidget().updateAll(context)
+                Reminders.schedule(context)
             } finally {
                 pending.finish()
             }
         }
         WidgetUpdates.schedule(context)
         WidgetUpdates.refreshNow(context)
-        Reminders.schedule(context)
     }
 }

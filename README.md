@@ -1,5 +1,7 @@
 # What to Wear
 
+[![Tests](https://github.com/Thomas-Richardson/what-to-wear/actions/workflows/tests.yml/badge.svg)](https://github.com/Thomas-Richardson/what-to-wear/actions/workflows/tests.yml)
+
 What to Wear is an Android app that tells you what to wear today from the weather, and learns from what you actually wore and how it felt. Richie built it for his own Pixel 8a, with Claude Code writing the code, as practice at building an app with AI. It keeps its logs in a note in his Obsidian vault, so he can read them on his Mac and point Claude at them.
 
 The reasons behind each design choice are in [docs/why.md](docs/why.md).
@@ -77,7 +79,16 @@ That builds `What to Wear.apk` in the project folder, and installs it if a phone
 cd ~/Documents/"What to wear app" && ./gradlew testDebugUnitTest
 ```
 
-`RealNoteTest` reads Richie's actual note from `~/Documents/Main` and checks the app's suggestions against it. On any other computer it skips itself, so the repository never needs a copy of his data. The other tests use made-up rows.
+There are 80 tests, in `app/src/test`, and none of them goes online:
+
+| Kind | Files | What they check |
+| --- | --- | --- |
+| Outfit logic | `RecommenderTest`, `OutfitRulesTest`, `QuickLogTest`, `CustomClothingTest` | Learning from logs, plus rules that must hold in any weather from -8°C to 32°C: one top and one pair of bottoms, never two jackets, rain gear exactly when it rains, colder never means less warmth |
+| Your note | `NoteTableTest`, `NoteDetailsTest`, `RealNoteTest` | Adding or removing a log changes exactly one line, odd table shapes are read safely, a table doubled by Obsidian Sync is caught, and logs move into the note unchanged |
+| Weather | `WeatherParsingTest`, `NowTest`, `FeelingTest` | Real replies from the weather service, saved in `app/src/test/resources` (Manchester over the weekend the clocks went back), checked against figures worked out separately |
+| Screens and widget | `ScreensTest`, `WidgetTest` | Tapping the 1 to 5 buttons, the Log tab's Now choice, adding your own clothes, the quick-log window, the reminder switch and its 5pm timing, and what the widget shows |
+
+The screen tests run on Robolectric, a tool that imitates an Android phone inside an ordinary test, so they need no emulator. `RealNoteTest` reads Richie's actual note from `~/Documents/Main` and skips itself on any other computer, so the repository never needs a copy of his data. GitHub runs every test whenever code is pushed (the badge at the top shows the latest result). The first run on a new computer downloads Robolectric's files, which takes a few minutes.
 
 For trying the app without a phone there is an emulator (a pretend phone on the Mac) called `Pixel8a_test`, set up as a Pixel 8a. Start it with `/opt/homebrew/share/android-commandlinetools/emulator/emulator -avd Pixel8a_test`. The emulator has no Wi-Fi location, so give it one with `adb emu geo fix -122.4194 37.7749` while the app is looking.
 
@@ -103,7 +114,7 @@ There are no accounts and no server. The weather comes from [Open-Meteo](https:/
 
 ## Status
 
-Version 0.8, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
+Version 0.9, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
 
 ## Licence and credits
 

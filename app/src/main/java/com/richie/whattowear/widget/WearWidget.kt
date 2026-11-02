@@ -56,7 +56,7 @@ class WearWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun WidgetContent(context: Context, state: WidgetState) {
+internal fun WidgetContent(context: Context, state: WidgetState) {
     val colors = GlanceTheme.colors
     Column(
         GlanceModifier.fillMaxSize().background(colors.widgetBackground).cornerRadius(20.dp).padding(12.dp),

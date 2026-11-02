@@ -24,6 +24,9 @@ class NoteTable private constructor(
 
     val hasAppColumns: Boolean get() = APP_COLUMNS.keys.all { it in columns }
 
+    /** A note saved on Windows ends each line with an extra invisible character; new lines must match. */
+    private val lineEnd = if (lines[headerAt].endsWith("\r")) "\r" else ""
+
     /**
      * Why the table can't be trusted, or null if it looks fine. When the phone and the Mac change the
      * note at the same moment, Obsidian Sync can keep both versions, one after the other, with a
@@ -82,7 +85,7 @@ class NoteTable private constructor(
         for ((i, values) in newValues) {
             val added = if (i == headerAt + 1) widths.joinToString(" | ") { "-".repeat(it) }
             else values.mapIndexed { c, v -> v.padEnd(widths[c]) }.joinToString(" | ")
-            out[i] = lines[i].trimEnd() + " " + added + " |"
+            out[i] = lines[i].trimEnd() + " " + added + " |" + lineEnd
         }
         return rebuild(out)
     }
@@ -99,7 +102,7 @@ class NoteTable private constructor(
                 .maxOf { splitRow(lines[it]).getOrElse(c) { "" }.length }
                 .coerceAtLeast(cells[c].length)
         }
-        return "| " + cells.mapIndexed { c, v -> v.padEnd(widths[c]) }.joinToString(" | ") + " |"
+        return "| " + cells.mapIndexed { c, v -> v.padEnd(widths[c]) }.joinToString(" | ") + " |" + lineEnd
     }
 
     private fun rebuild(out: List<String>) = out.joinToString("\n") + if (endsWithNewline) "\n" else ""

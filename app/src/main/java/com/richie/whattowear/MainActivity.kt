@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.lifecycleScope
 import com.richie.whattowear.data.LocationHelper
 import com.richie.whattowear.data.Settings
 import com.richie.whattowear.reminder.Reminders
@@ -42,6 +43,8 @@ import com.richie.whattowear.ui.LogScreen
 import com.richie.whattowear.ui.TodayScreen
 import com.richie.whattowear.ui.WhatToWearTheme
 import com.richie.whattowear.widget.WidgetUpdates
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()
@@ -51,7 +54,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // Background jobs: keep the home-screen widget fresh, and the 5pm reminder.
         WidgetUpdates.schedule(this)
-        Reminders.schedule(this)
+        // Off the main thread: it reads the job list (and re-times the reminder if the clocks changed).
+        lifecycleScope.launch(Dispatchers.IO) { Reminders.schedule(applicationContext) }
         setContent {
             WhatToWearTheme {
                 App(vm)

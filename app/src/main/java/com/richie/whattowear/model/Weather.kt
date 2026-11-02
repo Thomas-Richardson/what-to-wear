@@ -124,15 +124,20 @@ object WeatherCodes {
     }
 }
 
-/** Words for the note's Weather column, e.g. "Partly cloudy, rain likely" or "Clear night". */
+/**
+ * Words for the note's Weather column, e.g. "Partly cloudy, rain likely", "Clear, sunny" or "Clear night".
+ * They're written so that reading them back gives the same rain and sun: "sunny" appears only on a
+ * sunny day (a clear sky with weak winter sun isn't), and a wet-sounding sky that barely rained says "mostly dry".
+ */
 fun WeatherSummary.words(): String {
     val base = WeatherCodes.describe(weatherCode).second
     val wet = Regex("rain|drizzle|shower|thunder|snow", RegexOption.IGNORE_CASE).containsMatchIn(base)
     return buildString {
         append(base)
-        if (dayShare < 0.5) append(" night")
+        if (dayShare < 0.5 && !sunny) append(" night")
         if (rainy && !wet) append(", rain likely")
-        if (sunny && !base.startsWith("Clear") && !base.startsWith("Mostly clear")) append(", sunny")
+        if (!rainy && wet) append(", mostly dry")
+        if (sunny) append(", sunny")
     }
 }
 

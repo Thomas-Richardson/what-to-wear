@@ -83,6 +83,16 @@ The logs are a table in a Markdown note, and the app's own clothes are a small J
 
 Open-Meteo applies one fixed time offset to a whole response, so its local times are an hour wrong after the clocks change. The app asks for times as plain timestamps and converts them with the place's real time zone. A test checks the evening of 1 November 2026, the night US clocks went back.
 
+## How it's tested
+
+The tests never go online. Weather replies are real ones from Open-Meteo, saved once and checked against figures worked out separately in Python, so a test can't fail because the internet is down or the weather changed. The saved replies cover the weekend the UK clocks went back, because clock changes have caught the app out before.
+
+Some tests check rules across every temperature from -8°C to 32°C, wet and dry, with learning on and off: one top and one pair of bottoms, never two jackets, rain gear exactly when it rains, colder never meaning less warmth. Rules like these catch mistakes that a handful of examples would miss.
+
+The screens are tested on an imitation phone (Robolectric), so the tests run on Richie's Mac and on GitHub without an emulator. The one test that reads his real note skips itself anywhere else, to keep his data out of the repository.
+
+Writing these tests in November 2026 found four real bugs: two logs on the same day could be put in the wrong order, a clear sky with weak winter sun was saved as sunny, Windows-style line endings weren't kept on new rows, and the 5pm reminder drifted an hour when the clocks changed. Each fix has a test that fails without it.
+
 ## Not built yet
 
 These come from Richie's answers and haven't been built.

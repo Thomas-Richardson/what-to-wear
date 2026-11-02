@@ -84,7 +84,7 @@ class Recommender(
         // Only dated logs: "last time" needs a day to point to.
         val lastSimilar = entries
             .filter { it.date != null && abs(it.dressTempC - t) <= SIMILAR_WITHIN_C && it.rainy == weather.rainy }
-            .maxWithOrNull(compareBy<Entry>({ it.date }, { it.whenLabel }))
+            .maxWithOrNull(compareBy<Entry>({ it.date }, { it.endsAtMinute }))
 
         if (lastSimilar != null && lastSimilar.feeling == Feeling.JUST_RIGHT) {
             // Sun gear depends on today's sky, not the old day's (no sunglasses because last time was sunny).

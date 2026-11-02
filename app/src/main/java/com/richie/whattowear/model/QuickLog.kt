@@ -10,6 +10,6 @@ data class QuickClothes(val itemIds: List<String>, val fromTodaysLog: Boolean)
  * Otherwise start from today's suggestion.
  */
 fun quickLogClothes(entries: List<Entry>, today: LocalDate, suggestion: List<String>): QuickClothes {
-    val latestToday = entries.filter { it.date == today }.maxByOrNull { it.whenLabel }
+    val latestToday = entries.filter { it.date == today }.maxByOrNull { it.endsAtMinute }
     return if (latestToday != null) QuickClothes(latestToday.itemIds, true) else QuickClothes(suggestion, false)
 }

@@ -13,8 +13,8 @@ android {
         applicationId = "com.richie.whattowear"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.8"
+        versionCode = 9
+        versionName = "0.9"
     }
 
     buildTypes {
@@ -31,6 +31,10 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    testOptions {
+        // Screen tests run on the Mac (and on GitHub) with Robolectric, which needs the app's resources.
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -54,4 +58,13 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
     testImplementation("junit:junit:4.13.2")
+    // Screen tests without a phone: Robolectric imitates Android, Compose's test tools tap and check.
+    testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation(composeBom)
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation("androidx.work:work-testing:2.9.1")
+    testImplementation("androidx.glance:glance-appwidget-testing:1.1.1")
 }

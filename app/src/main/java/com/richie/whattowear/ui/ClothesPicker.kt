@@ -1,6 +1,7 @@
 package com.richie.whattowear.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.size
@@ -29,22 +30,25 @@ fun ClothesPicker(
     onToggle: (String) -> Unit,
     onAdd: ((Slot) -> Unit)? = null,
 ) {
-    Slot.entries.forEach { slot ->
-        Section(slot.label) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                clothes.filter { it.slot == slot }.forEach { item ->
-                    FilterChip(
-                        selected = item.id in selected,
-                        onClick = { onToggle(item.id) },
-                        label = { Text("${item.emoji} ${item.name}") },
-                    )
-                }
-                if (onAdd != null) {
-                    AssistChip(
-                        onClick = { onAdd(slot) },
-                        label = { Text("Add your own") },
-                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, Modifier.size(AssistChipDefaults.IconSize)) },
-                    )
+    // Its own column, so the groups stack whatever they're placed in.
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Slot.entries.forEach { slot ->
+            Section(slot.label) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    clothes.filter { it.slot == slot }.forEach { item ->
+                        FilterChip(
+                            selected = item.id in selected,
+                            onClick = { onToggle(item.id) },
+                            label = { Text("${item.emoji} ${item.name}") },
+                        )
+                    }
+                    if (onAdd != null) {
+                        AssistChip(
+                            onClick = { onAdd(slot) },
+                            label = { Text("Add your own") },
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, Modifier.size(AssistChipDefaults.IconSize)) },
+                        )
+                    }
                 }
             }
         }

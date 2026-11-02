@@ -20,6 +20,13 @@ Read `README.md` for how the app works and `docs/why.md` for why it is built thi
 - New versions reach his phone as `What to Wear.apk` in his Google Drive. Replace the existing file in place. Don't upload a second copy.
 - Emulator: `$ANDROID_HOME/emulator/emulator -avd Pixel8a_test`. Before starting or stopping it, check whether it's already running (`pgrep -fl qemu`). If Richie started it, install onto it with `adb install -r` and leave it running. It has no Wi-Fi location, so give it one with `adb emu geo fix -122.4194 37.7749`.
 
+## Tests
+
+- Run all of them (`./gradlew testDebugUnitTest`) before shipping a version. GitHub also runs them on every push (`.github/workflows/tests.yml`).
+- Tests never go online. For weather, save a real reply in `app/src/test/resources` and check it against figures worked out separately.
+- When fixing a bug, first write a test that fails because of it, and check it passes only with the fix.
+- Screen tests use Robolectric (`robolectric.properties` sets the imitation phone to Android 14, which the Robolectric version supports). Scroll to anything below the bottom of the screen before tapping it, as a finger would.
+
 ## The widget and the reminder
 
 - The widget draws from a saved copy of today's suggestion (`WidgetData`), so it never waits for the internet. A job refreshes it every two hours and straight after a log is saved.
