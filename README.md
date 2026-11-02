@@ -6,15 +6,19 @@ The reasons behind each design choice are in [docs/why.md](docs/why.md).
 
 ## What the app does
 
-The **Today** tab finds where you are, gets the hour-by-hour forecast and suggests an outfit for the rest of the day (until 10pm) or the next 3 hours. It dresses you for the "feels like" temperature, which allows for wind and humidity, and leans towards the coldest part of the time you're out. It adds a rain jacket or umbrella when rain is likely, sunglasses when it's sunny, and gloves and a scarf when it's cold. Under the suggestion it says why, for example "Last time it felt like 11°C (Sat 31 Oct in San Francisco) you wore this and it felt just right."
+The **Today** tab finds where you are (through Google's location service, which uses Wi-Fi, phone masts and GPS, or Android's own sources on phones without it), gets the hour-by-hour forecast and suggests an outfit for the rest of the day (until 10pm) or the next 3 hours. It dresses you for the "feels like" temperature, which allows for wind and humidity, and leans towards the coldest part of the time you're out. It adds a rain jacket or umbrella when rain is likely, sunglasses when it's sunny, and gloves and a scarf when it's cold. Under the suggestion it says why, for example "Last time it felt like 11°C (Sat 31 Oct in San Francisco) you wore this and it felt just right." If it can't find you, it says which step failed (no permission, location switched off, or no reading) and offers the fix, or you can pick a place.
 
 The **Log** tab records what you wore and how it felt. "When" defaults to **Now**, which uses the weather for the last hour and this one. You can also pick today, yesterday or any day up to three months back, and a part of the day (morning, afternoon, evening or all day). You tick your clothes, which are pre-filled if you tapped "Log what I wore" on the Today tab, and rate how it felt on a 1 to 5 scale: 1 way too cold, 2 too cold, 3 just right, 4 too warm, 5 too hot. Each group of clothes has an **Add your own** button for anything that isn't listed. The app looks up the weather for that time and place itself.
+
+The **home-screen widget** shows today's suggestion, or what you logged if you've already logged today, with five buttons for the 1 to 5 scale. Tapping a number opens a small window over the home screen with that score picked and the clothes already ticked. Tap **Save** and the log goes into your note without the app opening. Tapping the suggestion opens the app. To add the widget, hold your finger on an empty part of the home screen, tap **Widgets**, find What to Wear and tap **Add**.
+
+The **reminder** is a notification at 5pm on days you haven't logged yet: "How does your outfit feel?" Tapping it opens the same window. Android asks once for permission to show notifications, and the reminder can be switched off on the History tab.
 
 The **History** tab lists every log, newest first, then the rows from before the app existed. It shows what the app has learnt (the outfit it would pick on a dry day at 5°C, 12°C and 20°C), your own clothes, and which note the logs live in.
 
 ## Where the data lives
 
-The logs live in one place only: the note "How do I feel at different temperatures" in Richie's Main Obsidian vault. Obsidian Sync keeps the note on both his phone and his Mac. The app reads the whole table, adds one line when you save a log and removes one line when you delete one. Everything else in the note stays exactly as it was. If the note can't be read, for example because it was renamed or moved, the app says so and refuses to save anywhere else until you connect it again.
+The logs live in one place only: the note "How do I feel at different temperatures" in Richie's Main Obsidian vault. Obsidian Sync keeps the note on both his phone and his Mac. The app reads the whole table, adds one line when you save a log and removes one line when you delete one. Everything else in the note stays exactly as it was. If the note can't be read, for example because it was renamed or moved, the app says so and refuses to save anywhere else until you connect it again. If the table looks damaged (two heading rows, or the same column twice), the app says so and won't change the note until it's fixed. That happened once, on 1 November 2026, when the phone and the Mac changed the note at nearly the same moment and Obsidian Sync kept both versions of the table.
 
 Richie's own four columns come first, as they always have. The app's six columns follow them.
 
@@ -86,7 +90,11 @@ For trying the app without a phone there is an emulator (a pretend phone on the 
 | `model/LogRow.kt` | Turns a new log into a row for the note |
 | `data/NoteStore.kt` | Opens the note on the phone through Android's file picker |
 | `data/WeatherClient.kt` | Gets forecasts and place names from Open-Meteo |
-| `ui/` | The Today, Log and History tabs |
+| `ui/` | The Today, Log and History tabs, and the quick-log window |
+| `QuickLogActivity.kt` | Opens the quick-log window over the home screen, from the widget or the reminder |
+| `widget/` | The home-screen widget, the job that refreshes its suggestion every two hours, and its redraw after an update |
+| `reminder/Reminders.kt` | The 5pm reminder |
+| `data/Logs.kt` | Loads the logs the same way for the app, the widget and the reminder |
 | `analysis/` | The calibration script and its graphs |
 
 ## Privacy
@@ -95,7 +103,7 @@ There are no accounts and no server. The weather comes from [Open-Meteo](https:/
 
 ## Status
 
-Version 0.6, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
+Version 0.8, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
 
 ## Licence and credits
 

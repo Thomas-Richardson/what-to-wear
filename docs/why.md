@@ -12,13 +12,14 @@ His measure of success: "If I find it effortless to remember to log and I've log
 
 ## One plain answer each morning
 
-The Today tab shows a single outfit, a one-line reason and a few notes (rain, wind, a big swing in temperature). It doesn't show a forecast to interpret. Richie said he will look every morning "at what the app says and choose appropriately", so the answer has to be readable at a glance. Each suggestion says why it was made, for example which past day it copied, so he can judge whether to trust it.
+The Today tab shows a single outfit, a one-line reason and a few notes (rain, wind, a big swing in temperature). It doesn't show a forecast to interpret. Richie said he will look every morning "at what the app says and choose appropriately", so the answer has to be readable at a glance. Each suggestion says why it was made, for example which past day it copied, so he can judge whether to trust it. The home-screen widget shows the same answer, so he doesn't have to open the app to see it.
 
 ## Logging takes a few taps
 
 Richie wants capture to be effortless: "I want capture of new data to be effortless, and I want retrieval of previous data to be effortless. With the note, it was quite clunky." He plans to "log at random moments when I'm out". Several choices follow from that:
 
 - **Now is the default, and sits on the top row.** Most logs will be made in the moment, so "Now" is selected when the Log tab opens. Richie asked for it to sit on the top row with Today, Yesterday and Earlier. While Now is picked, the morning, afternoon, evening and all-day choices are hidden, because Now already says when.
+- **A Log button on the home screen.** Richie asked to "literally just click a Log button from my home screen" instead of opening the app and then the Log tab. The widget's 1 to 5 buttons open a small window over the home screen, so a log takes two taps: the score, then Save. The first tap doesn't save on its own, because the widget can't know what he's wearing. The window shows the clothes it will log, already ticked, so a different outfit can be fixed before it teaches the app the wrong thing. If he has already logged that day, it starts from that outfit, since he's probably still wearing it.
 - **"Log what I wore" pre-fills the suggestion.** Usually only a tick or two needs changing.
 - **How it felt is five big buttons.** It takes one tap.
 - **You can add your own clothes from the Log tab.** Richie asked for this so that anything missing from the list can be added on the spot, without leaving the log.
@@ -30,6 +31,8 @@ Before the app, Richie kept a table in his Obsidian note "How do I feel at diffe
 
 He asked for a design that lets him "see both without duplicating", so the note is the app's only store. Two copies of the same logs drift apart: one gets an edit the other misses, and then nobody can tell which is right. With one copy that can't happen. For the same reason, if the app can't read the note (because it was renamed or moved, say), it refuses to save anywhere else and asks to be connected again. Before the note is connected the app keeps logs in a private file, and connecting moves them into the note and retires the file.
 
+On 1 November 2026 the note was changed on the Mac (to add the app's columns) moments before Richie connected it on his phone, which still had the old version. Obsidian Sync kept both: the phone's copy of the table, then the Mac's, with a garbled heading row. The app misread every row and reported 92 it couldn't use. The note was put back from the correct version with nothing lost. Since then the app checks the table before reading or changing it. If it finds two heading rows or the same column twice, it says the note looks damaged and won't write to it, because editing a damaged table would only make it worse.
+
 The app reaches the note through Android's file picker. Richie picks the note once and the app keeps permission to read and write that one file. Obsidian Sync carries the changes to his Mac, and when he reopens the app it reads the note again, so edits made on the Mac show up.
 
 ## Richie's four columns stay first
@@ -37,6 +40,10 @@ The app reaches the note through Android's file picker. Richie picks the note on
 The app adds its six columns (Score, Counted as, Feels like °C, Date, Place, Weather) after Richie's four, and reads every column by its heading, so the order of the columns doesn't matter. His columns and his wording are never changed. This keeps the note readable as his own note, and it keeps his `note-temperature` skill working: the skill finds the table by its Temperature heading and fills the first four columns, and it now fills the Score, Counted as and Date columns too.
 
 When the app changes the note it adds or removes exactly one line. The rest of the file stays byte for byte as it was. New rows go in by temperature, after the other rows at the same temperature, which is the order the skill already used.
+
+## A reminder at 5pm
+
+Success means it is "effortless to remember to log", so the app reminds him. At 5pm, on days with no log yet, a notification asks "How does your outfit feel?" and opens the quick-log window. It stays quiet on days he has already logged, so it never nags about something already done. 5pm is a guess at a time when he has been out in the day's weather. It's one number in `reminder/Reminders.kt` and easy to change, and the reminder can be switched off on the History tab.
 
 ## It starts from Richie's existing note
 
@@ -80,7 +87,5 @@ Open-Meteo applies one fixed time offset to a whole response, so its local times
 
 These come from Richie's answers and haven't been built.
 
-1. **A reminder to log.** Success means it is "effortless to remember to log". Nothing reminds him yet. An evening or out-and-about notification asking how today's outfit felt would help.
-2. **The morning answer without opening the app.** He will check every morning, so a home-screen widget or a morning notification showing today's suggestion would save a step.
-3. **Revisit the 1 to 5 scale** after 20 to 30 logs, by looking at how often each score is used.
-4. **Sharing with other people.** "I might share it with some other people after some testing." That would need a proper signing key kept somewhere safe, a way to start without Richie's note, and probably Google Play's internal testing track, so that updates arrive automatically.
+1. **Revisit the 1 to 5 scale** after 20 to 30 logs, by looking at how often each score is used.
+2. **Sharing with other people.** "I might share it with some other people after some testing." That would need a proper signing key kept somewhere safe, a way to start without Richie's note, and probably Google Play's internal testing track, so that updates arrive automatically.

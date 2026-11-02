@@ -2,17 +2,6 @@ package com.richie.whattowear.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import com.richie.whattowear.model.WarmthLevel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -22,13 +11,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
@@ -43,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,6 +50,7 @@ import com.richie.whattowear.model.Feeling
 import com.richie.whattowear.model.Slot
 import com.richie.whattowear.model.TimeOfDay
 import com.richie.whattowear.model.Wardrobe
+import com.richie.whattowear.model.WarmthLevel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -119,50 +119,15 @@ fun LogScreen(vm: MainViewModel, onUseMyLocation: () -> Unit) {
             PlaceRow(name = d.place?.name ?: "Choose a place", usingGps = false, onChange = { choosingPlace = true })
         }
 
-        Slot.entries.forEach { slot ->
-            Section(slot.label) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    clothes.filter { it.slot == slot }.forEach { item ->
-                        val on = item.id in d.itemIds
-                        FilterChip(
-                            selected = on,
-                            onClick = {
-                                vm.editDraft { it.copy(itemIds = if (on) it.itemIds - item.id else it.itemIds + item.id) }
-                            },
-                            label = { Text("${item.emoji} ${item.name}") },
-                        )
-                    }
-                    AssistChip(
-                        onClick = { addingTo = slot },
-                        label = { Text("Add your own") },
-                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, Modifier.size(AssistChipDefaults.IconSize)) },
-                    )
-                }
-            }
-        }
+        ClothesPicker(
+            clothes = clothes,
+            selected = d.itemIds,
+            onToggle = { id -> vm.editDraft { it.copy(itemIds = if (id in it.itemIds) it.itemIds - id else it.itemIds + id) } },
+            onAdd = { addingTo = it },
+        )
 
         Section("How did it feel? (1–5)") {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Feeling.entries.forEach { f ->
-                    val selected = d.feeling == f
-                    Surface(
-                        onClick = { vm.editDraft { it.copy(feeling = f) } },
-                        shape = MaterialTheme.shapes.medium,
-                        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Column(
-                            Modifier.padding(vertical = 10.dp, horizontal = 2.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text("${f.score}", style = MaterialTheme.typography.titleLarge)
-                            Text(f.emoji, fontSize = 22.sp)
-                            Text(f.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
-                        }
-                    }
-                }
-            }
+            FeelingRow(d.feeling) { f -> vm.editDraft { it.copy(feeling = f) } }
         }
 
         OutlinedTextField(
@@ -307,3 +272,29 @@ private fun utcMillisToDate(ms: Long) = Instant.ofEpochMilli(ms).atZone(ZoneOffs
 
 /** Switching to an earlier day turns "Now" into "All day". */
 private fun TimeOfDay.notNow() = if (this == TimeOfDay.NOW) TimeOfDay.ALL_DAY else this
+
+/** The five buttons for Richie's 1–5 scale: number, emoji and his words. */
+@Composable
+fun FeelingRow(selected: Feeling?, onPick: (Feeling) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Feeling.entries.forEach { f ->
+            val on = selected == f
+            Surface(
+                onClick = { onPick(f) },
+                shape = MaterialTheme.shapes.medium,
+                color = if (on) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                border = if (on) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                modifier = Modifier.weight(1f),
+            ) {
+                Column(
+                    Modifier.padding(vertical = 10.dp, horizontal = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("${f.score}", style = MaterialTheme.typography.titleLarge)
+                    Text(f.emoji, fontSize = 22.sp)
+                    Text(f.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                }
+            }
+        }
+    }
+}

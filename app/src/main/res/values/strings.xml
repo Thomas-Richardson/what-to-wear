@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">What to Wear</string>
+    <string name="widget_description">Today\'s suggestion, and 1–5 buttons to log how it feels</string>
 </resources>

@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- The T-shirt from the app icon, on its own, for the notification bar. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M43,33 L35,36 L24,46 L31,54 L37,49 L37,79 L71,79 L71,49 L77,54 L84,46 L73,36 L65,33 C63,37.5 59,40 54,40 C49,40 45,37.5 43,33 Z" />
+</vector>

@@ -25,7 +25,13 @@ class NoteStore(context: Context) {
     fun read(uri: Uri): String = resolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
         ?: throw IOException("Couldn't open the note.")
 
-    fun table(uri: Uri): NoteTable = NoteTable.parse(read(uri)) ?: throw NoTableException()
+    fun table(uri: Uri): NoteTable = checked(NoteTable.parse(read(uri)))
+
+    private fun checked(table: NoteTable?): NoteTable {
+        table ?: throw NoTableException()
+        table.damage?.let { throw NoteDamagedException(it) }
+        return table
+    }
 
     fun addRow(uri: Uri, values: Map<String, String>) = change(uri) { it.withRow(values) }
 
@@ -40,7 +46,8 @@ class NoteStore(context: Context) {
      */
     private fun change(uri: Uri, edit: (NoteTable) -> String?) {
         val before = read(uri)
-        val after = edit(NoteTable.parse(before) ?: throw NoTableException()) ?: return
+        // Never edit a damaged table: it would only make the damage worse.
+        val after = edit(checked(NoteTable.parse(before))) ?: return
         write(uri, after)
         if (read(uri) != after) {
             write(uri, before)
@@ -52,6 +59,11 @@ class NoteStore(context: Context) {
     private fun write(uri: Uri, text: String) = resolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
         ?: throw IOException("Couldn't save to the note.")
 }
+
+class NoteDamagedException(damage: String) : Exception(
+    "The table in your note looks damaged: $damage. This happens when your phone and Mac change the note " +
+        "at the same moment. The app won't save to it until it's fixed in Obsidian (or ask Claude to fix it).",
+)
 
 class NoTableException : Exception(
     "That note has no table starting with a Temperature column. Pick \"How do I feel at different temperatures\".",

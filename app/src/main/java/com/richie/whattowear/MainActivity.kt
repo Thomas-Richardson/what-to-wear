@@ -1,6 +1,7 @@
 package com.richie.whattowear
 
 import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -34,10 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import com.richie.whattowear.data.LocationHelper
+import com.richie.whattowear.data.Settings
+import com.richie.whattowear.reminder.Reminders
 import com.richie.whattowear.ui.HistoryScreen
 import com.richie.whattowear.ui.LogScreen
 import com.richie.whattowear.ui.TodayScreen
 import com.richie.whattowear.ui.WhatToWearTheme
+import com.richie.whattowear.widget.WidgetUpdates
 
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()
@@ -45,6 +49,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Background jobs: keep the home-screen widget fresh, and the 5pm reminder.
+        WidgetUpdates.schedule(this)
+        Reminders.schedule(this)
         setContent {
             WhatToWearTheme {
                 App(vm)
@@ -93,6 +100,16 @@ fun App(vm: MainViewModel) {
         if (uri != null) vm.connectNote(uri)
     }
     val connectNote = { notePicker.launch(arrayOf("*/*")) }
+
+    // The reminder needs permission to show notifications (Android 13 and later). Ask once, on first open.
+    val notificationAsk = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        val settings = Settings(context)
+        if (vm.reminderOn && !Reminders.canNotify(context) && !settings.askedForNotifications && Build.VERSION.SDK_INT >= 33) {
+            settings.askedForNotifications = true
+            notificationAsk.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (vm.forecast == null) {

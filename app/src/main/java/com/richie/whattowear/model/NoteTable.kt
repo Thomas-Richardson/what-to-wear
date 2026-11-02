@@ -25,6 +25,17 @@ class NoteTable private constructor(
     val hasAppColumns: Boolean get() = APP_COLUMNS.keys.all { it in columns }
 
     /**
+     * Why the table can't be trusted, or null if it looks fine. When the phone and the Mac change the
+     * note at the same moment, Obsidian Sync can keep both versions, one after the other, with a
+     * second heading row in the middle. Reading or editing that would go wrong, so the app stops.
+     */
+    val damage: String? = when {
+        (headerAt + 2..lastRowAt).any { isDivider(lines[it]) } -> "it has two heading rows"
+        columns.filter { it.isNotEmpty() }.let { it.size != it.toSet().size } -> "it has the same column twice"
+        else -> null
+    }
+
+    /**
      * The note with one new row. Like the note-temperature skill, it goes after the other rows at
      * the same temperature, before the first warmer row or the first blank row.
      */
@@ -133,6 +144,9 @@ class NoteTable private constructor(
         fun columnKey(heading: String) = heading.lowercase().filter { it.isLetterOrDigit() }.let {
             if (it == "feelslike") FEELS else it
         }
+
+        /** The "| --- | --- |" line under the headings. */
+        private fun isDivider(line: String) = line.contains("---") && line.all { it in "|-: \t" }
 
         fun splitRow(line: String): List<String> =
             line.trim().removePrefix("|").removeSuffix("|").split("|").map { it.trim() }

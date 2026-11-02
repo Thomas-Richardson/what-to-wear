@@ -110,6 +110,17 @@ class NoteTableTest {
     }
 
     @Test
+    fun spotsATableThatSyncDoubledUp() {
+        assertNull(NoteTable.parse(withColumns)!!.damage)
+        // What Obsidian Sync left behind on 1 Nov 2026: the phone's copy, then a second divider and the Mac's copy.
+        val lines = withColumns.lines()
+        val divider = lines.first { it.startsWith("| ---") }
+        val rows = lines.filter { it.startsWith("|") && !it.startsWith("| Temperature") && !it.startsWith("| ---") }
+        val doubled = withColumns.replace(rows.last(), rows.last() + "\n" + divider + "\n" + rows.joinToString("\n"))
+        assertEquals("it has two heading rows", NoteTable.parse(doubled)!!.damage)
+    }
+
+    @Test
     fun pipesInANoteCannotBreakTheTable() {
         assertEquals("a / b", NoteTable.clean("a | b"))
         assertNotNull(NoteTable.parse(withColumns))

@@ -9,6 +9,7 @@ Read `README.md` for how the app works and `docs/why.md` for why it is built thi
 - **Change the note one line at a time.** Adding a log inserts one line and deleting removes one. Everything else in the file must stay byte for byte the same. Test any change to `NoteTable.kt` against that.
 - **Keep his four columns first, and never rename any column.** The app and his `note-temperature` skill both find the table by its Temperature heading and read columns by name.
 - **Test on the emulator with a copy of the note.** Never use the note in his vault for testing.
+- **Don't edit the note on the Mac while the phone may be changing it.** On 1 Nov 2026 a Mac edit and a phone edit landed together and Obsidian Sync kept both copies of the table. `NoteTable.damage` now makes the app stop rather than read or write a doubled table. If it happens again, compare the two copies, keep any rows that exist in only one, and put back a single table.
 
 ## Building, testing and shipping
 
@@ -18,6 +19,12 @@ Read `README.md` for how the app works and `docs/why.md` for why it is built thi
 - Build only on Richie's Mac. Updates install over the existing app only if signed with `~/.android/debug.keystore` from that Mac. Building elsewhere would force an uninstall, which loses his own clothes and the connection to the note.
 - New versions reach his phone as `What to Wear.apk` in his Google Drive. Replace the existing file in place. Don't upload a second copy.
 - Emulator: `$ANDROID_HOME/emulator/emulator -avd Pixel8a_test`. Before starting or stopping it, check whether it's already running (`pgrep -fl qemu`). If Richie started it, install onto it with `adb install -r` and leave it running. It has no Wi-Fi location, so give it one with `adb emu geo fix -122.4194 37.7749`.
+
+## The widget and the reminder
+
+- The widget draws from a saved copy of today's suggestion (`WidgetData`), so it never waits for the internet. A job refreshes it every two hours and straight after a log is saved.
+- After an app update, Android shows the widget's loading spinner until something redraws it. `AppUpdatedReceiver` does that. Keep it, or every update leaves a spinner on his home screen.
+- To test the 5pm reminder on the emulator: WorkManager won't start a daily job before its time, even when the job is forced. Run `adb root`, switch off automatic time (`adb shell settings put global auto_time 0`), set the clock past 5pm (`adb shell date MMDDhhmmYYYY.ss`), force the app's jobs (`adb shell cmd jobscheduler run -f com.richie.whattowear <id>`, with the ids from `dumpsys jobscheduler`), then switch automatic time back on.
 
 ## How Richie wants changes explained
 

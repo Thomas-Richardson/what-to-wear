@@ -79,6 +79,16 @@ class Settings(context: Context) {
         get() = prefs.getString("note_name", null)
         set(value) = prefs.edit().putString("note_name", value).apply()
 
+    /** The 5pm reminder to log. On unless switched off on the History tab. */
+    var reminderOn: Boolean
+        get() = prefs.getBoolean("reminder_on", true)
+        set(value) = prefs.edit().putBoolean("reminder_on", value).apply()
+
+    /** Whether the app has already asked for permission to show notifications, so it asks only once. */
+    var askedForNotifications: Boolean
+        get() = prefs.getBoolean("asked_notifications", false)
+        set(value) = prefs.edit().putBoolean("asked_notifications", value).apply()
+
     var usingGps: Boolean
         get() = prefs.getBoolean("using_gps", true)
         set(value) = prefs.edit().putBoolean("using_gps", value).apply()

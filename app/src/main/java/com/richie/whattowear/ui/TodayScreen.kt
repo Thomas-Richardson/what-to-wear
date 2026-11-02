@@ -1,5 +1,9 @@
 package com.richie.whattowear.ui
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.richie.whattowear.Ahead
@@ -45,6 +50,7 @@ fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () 
     val summary = vm.todaySummary()
     val suggestion = remember(summary, recommender) { summary?.let(recommender::suggest) }
     var choosingPlace by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         Modifier
@@ -95,7 +101,20 @@ fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () 
             else -> Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(vm.error ?: "No weather yet.")
-                    OutlinedButton(onClick = { vm.refresh() }) { Text("Try again") }
+                    vm.locationDetail?.let {
+                        Text(
+                            "Details: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        when {
+                            vm.locationBlocked -> OutlinedButton(onClick = { openAppSettings(context) }) { Text("Open settings") }
+                            vm.needsLocationPermission -> OutlinedButton(onClick = onUseMyLocation) { Text("Allow location") }
+                        }
+                        OutlinedButton(onClick = { vm.refresh() }) { Text("Try again") }
+                    }
                 }
             }
         }
@@ -116,6 +135,11 @@ fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () 
         )
     }
 }
+
+/** Android's page for this app, where location permission can be switched on after "Don't allow". */
+private fun openAppSettings(context: Context) = context.startActivity(
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+)
 
 @Composable
 private fun WeatherCard(w: WeatherSummary) {

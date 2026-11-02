@@ -1,3 +1,10 @@
 <resources>
     <style name="Theme.WhatToWear" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- The quick-log window: see-through, so it sits over the home screen. -->
+    <style name="Theme.WhatToWear.Translucent" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
+    </style>
 </resources>

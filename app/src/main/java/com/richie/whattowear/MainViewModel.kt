@@ -1,24 +1,25 @@
 package com.richie.whattowear
 
 import android.app.Application
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
-import com.richie.whattowear.model.Entry
-import com.richie.whattowear.data.NoteStore
-import com.richie.whattowear.data.NoTableException
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.richie.whattowear.data.LocationHelper
 import com.richie.whattowear.data.CustomClothesStore
+import com.richie.whattowear.data.LocationHelper
+import com.richie.whattowear.data.LocationResult
 import com.richie.whattowear.data.LogStore
+import com.richie.whattowear.data.Logs
+import com.richie.whattowear.data.NoTableException
+import com.richie.whattowear.data.NoteDamagedException
+import com.richie.whattowear.data.NoteStore
 import com.richie.whattowear.data.Settings
 import com.richie.whattowear.data.WeatherClient
 import com.richie.whattowear.model.ClothingItem
 import com.richie.whattowear.model.CustomClothing
+import com.richie.whattowear.model.Entry
 import com.richie.whattowear.model.Feeling
 import com.richie.whattowear.model.HourlyForecast
 import com.richie.whattowear.model.Place
@@ -26,11 +27,15 @@ import com.richie.whattowear.model.Slot
 import com.richie.whattowear.model.TimeOfDay
 import com.richie.whattowear.model.Wardrobe
 import com.richie.whattowear.model.WarmthLevel
-import com.richie.whattowear.model.WeatherSummary
 import com.richie.whattowear.model.WearLog
+import com.richie.whattowear.model.WeatherSummary
 import com.richie.whattowear.model.plural
+import com.richie.whattowear.reminder.Reminders
+import com.richie.whattowear.widget.WidgetUpdates
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.time.Duration
 import java.time.Instant
@@ -87,6 +92,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var noteProblem by mutableStateOf<String?>(null)
         private set
 
+    /** True when the note's table is damaged, so reconnecting won't help: it needs fixing, then checking again. */
+    var noteDamaged by mutableStateOf(false)
+        private set
+
     /** Rows in the note that couldn't be used, e.g. a score or clothes missing. */
     var skippedRows by mutableStateOf(0)
         private set
@@ -111,6 +120,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** A short message to pop up at the bottom of the screen. */
     var message by mutableStateOf<String?>(null)
 
+    /** Goes up each time a log is saved, so the quick-log window knows when to close. */
+    var savedCount by mutableStateOf(0)
+        private set
+
+    var reminderOn by mutableStateOf(settings.reminderOn)
+        private set
+
+    fun setReminder(on: Boolean) {
+        reminderOn = on
+        settings.reminderOn = on
+        Reminders.schedule(getApplication(), restart = true)
+    }
+
+    /** Starts a log from the widget or the reminder: "Now", with the score and clothes already chosen. */
+    fun startQuickLog(feeling: Feeling?, itemIds: List<String>) {
+        draft = LogDraft(place = place, itemIds = itemIds.toSet(), feeling = feeling)
+    }
+
     init {
         reloadEntries()
     }
@@ -120,22 +147,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Reads the logs again, e.g. when you come back to the app after editing the note on your Mac. */
     fun reloadEntries() {
         viewModelScope.launch {
-            val uri = noteUri
-            if (uri == null) {
-                entries = withContext(Dispatchers.IO) { store.load() }.map { it.toEntry() }
-                return@launch
-            }
             try {
-                val rows = withContext(Dispatchers.IO) { noteStore.table(uri) }.rows
-                val usable = rows.mapNotNull { it.toEntry() }
-                entries = usable
-                // Blank spacer rows aren't counted; rows with a temperature but no score or clothes are.
-                skippedRows = rows.count { it.realTempC != null } - usable.size
+                val loaded = withContext(Dispatchers.IO) { Logs.load(getApplication()) }
+                entries = loaded.entries
+                skippedRows = loaded.skippedRows
                 noteProblem = null
+                noteDamaged = false
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                noteProblem = "Couldn't read \"${noteName ?: "your note"}\". If you renamed or moved it, connect it again."
+                noteDamaged = e is NoteDamagedException
+                noteProblem = if (e is NoteDamagedException) e.message
+                else "Couldn't read \"${noteName ?: "your note"}\". If you renamed or moved it, connect it again."
             }
         }
     }
@@ -180,16 +203,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             error = null
             try {
                 if (usingGps) {
-                    val here = LocationHelper.here(getApplication())
+                    val found = LocationHelper.find(getApplication())
+                    locationDetail = (found as? LocationResult.NoFix)?.detail
+                    needsLocationPermission = found is LocationResult.NoPermission
+                    // Say which step failed, so the fix is obvious (and a screenshot tells Claude the cause).
+                    val why = when (found) {
+                        is LocationResult.Found -> null
+                        LocationResult.NoPermission -> "What to Wear isn't allowed to use your location."
+                        LocationResult.LocationOff -> "Location is switched off on your phone."
+                        is LocationResult.NoFix -> "Couldn't get a reading of where you are."
+                    }
                     when {
-                        here != null -> rememberPlace(here)
-                        place == null -> throw Problem("Couldn't find your location. Tap Change to search for a place.")
-                        else -> message = "Couldn't find your location, so this is for ${place?.name}."
+                        found is LocationResult.Found -> rememberPlace(found.place)
+                        place == null -> throw Problem("$why Tap Change to pick a place instead.")
+                        else -> message = "$why Showing ${place?.name} instead."
                     }
                 }
                 val p = place ?: throw Problem("Choose a place to see the weather.")
                 forecast = WeatherClient.forecast(p.latitude, p.longitude)
                 fetchedAt = Instant.now()
+                WidgetUpdates.refreshNow(getApplication())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -225,9 +258,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (draft.place == null) draft = draft.copy(place = p)
     }
 
+    /** Set when location permission is missing, so Today can offer to allow it. */
+    var needsLocationPermission by mutableStateOf(false)
+        private set
+
+    /** Set when Android won't ask for permission again, so Today offers the app's settings instead. */
+    var locationBlocked by mutableStateOf(false)
+        private set
+
+    /** What was tried when no location reading came back, shown in small print under the problem. */
+    var locationDetail by mutableStateOf<String?>(null)
+        private set
+
+    private var refusals = 0
+
+    /**
+     * Location permission was refused. Android asks twice at most: after the second "Don't allow" it
+     * refuses on its own, so from then on the only way back is the app's page in Settings.
+     */
     fun locationDenied() {
-        message = "No location permission, so search for a place instead."
-        if (usingGps && place == null) error = "Tap \"Choose a place\" to search for where you are."
+        refusals++
+        needsLocationPermission = true
+        locationBlocked = refusals >= 2
+        message = "No location permission, so pick a place instead."
+        if (usingGps && place == null) {
+            error = "What to Wear isn't allowed to use your location. " +
+                if (locationBlocked) "Tap Open settings, then Permissions, then Location. Or tap Change to pick a place."
+                else "Tap Allow location, or tap Change to pick a place."
+        }
     }
 
     /** Starts a log pre-filled with today's suggestion, so logging is a couple of taps. */
@@ -283,7 +341,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 draft = LogDraft(place = p)
                 reloadEntries()
+                // The widget now shows what you're wearing.
+                WidgetUpdates.refreshNow(getApplication())
                 message = if (uri != null) "Saved to \"$noteName\"." else "Saved."
+                savedCount++
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

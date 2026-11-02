@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +42,7 @@ import com.richie.whattowear.model.Recommender
 import com.richie.whattowear.model.WarmthLevel
 import com.richie.whattowear.model.deg
 import com.richie.whattowear.model.plural
+import com.richie.whattowear.reminder.Reminders
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -58,6 +60,7 @@ fun HistoryScreen(vm: MainViewModel, onConnectNote: () -> Unit) {
 
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { NoteCard(vm, onConnectNote) }
+        item { ReminderCard(vm) }
         item { LearntCard(recommender, vm.entries.size) }
         if (vm.noteName == null && vm.entries.isNotEmpty()) {
             item {
@@ -120,7 +123,8 @@ fun NoteCard(vm: MainViewModel, onConnectNote: () -> Unit) {
             when {
                 problem != null -> {
                     Text(problem, style = MaterialTheme.typography.bodyMedium)
-                    OutlinedButton(onClick = onConnectNote) { Text("Connect it again") }
+                    if (vm.noteDamaged) OutlinedButton(onClick = vm::reloadEntries) { Text("Check again") }
+                    else OutlinedButton(onClick = onConnectNote) { Text("Connect it again") }
                 }
                 name != null -> {
                     Text("Your logs live in \"$name\" in Obsidian.", style = MaterialTheme.typography.bodyMedium)
@@ -141,6 +145,25 @@ fun NoteCard(vm: MainViewModel, onConnectNote: () -> Unit) {
                     OutlinedButton(onClick = onConnectNote) { Text("Connect my note") }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ReminderCard(vm: MainViewModel) {
+    val context = LocalContext.current
+    Card(Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Reminder at ${Reminders.HOUR - 12}pm", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (vm.reminderOn && !Reminders.canNotify(context)) "Notifications are off for this app in Android's settings."
+                    else "Only on days you haven't logged yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = vm.reminderOn, onCheckedChange = vm::setReminder)
         }
     }
 }
