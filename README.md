@@ -10,7 +10,7 @@ The reasons behind each design choice are in [docs/why.md](docs/why.md).
 
 The **Today** tab finds where you are (through Google's location service, which uses Wi-Fi, phone masts and GPS, or Android's own sources on phones without it), gets the hour-by-hour forecast and suggests an outfit for the rest of the day (until 10pm) or the next 3 hours. It dresses you for the "feels like" temperature, which allows for wind and humidity, and leans towards the coldest part of the time you're out. It adds a rain jacket or umbrella when rain is likely, sunglasses when it's sunny, and gloves and a scarf when it's cold. Under the suggestion it says why, for example "Last time it felt like 11°C (Sat 31 Oct in San Francisco) you wore this and it felt just right." If it can't find you, it says which step failed (no permission, location switched off, or no reading) and offers the fix, or you can pick a place.
 
-The **Log** tab records what you wore and how it felt. "When" defaults to **Now**, which uses the weather for the last hour and this one. You can also pick today, yesterday or any day up to three months back, and a part of the day (morning, afternoon, evening or all day). You tick your clothes, which are pre-filled if you tapped "Log what I wore" on the Today tab, and rate how it felt on a 1 to 5 scale: 1 way too cold, 2 too cold, 3 just right, 4 too warm, 5 too hot. Each group of clothes has an **Add your own** button for anything that isn't listed. The app looks up the weather for that time and place itself.
+The **Log** tab records what you wore and how it felt. "When" defaults to **Now**, which uses the weather for the last hour and this one. You can also pick today, yesterday or any day up to three months back, and a part of the day (morning, afternoon, evening or all day). You tick your clothes, which are pre-filled if you tapped "Log what I wore" on the Today tab, and rate how it felt on a 1 to 5 scale: 1 way too cold, 2 too cold, 3 just right, 4 too warm, 5 too hot. Each group of clothes has an **Add your own** button for anything that isn't listed. Instead of ticking, you can **fill in with AI**: take or choose a photo of what you're wearing, or describe it in your own words ("tweed jacket, chinos, my pea coat"). OpenAI's gpt-6.1-terra ticks the matching clothes, says if it's unsure of anything, and offers a "＋ Add" button for clothes that aren't on the list. You check the ticks and save as usual. When you describe the outfit, your own words go in the note's "What I wore" column and the app's reading in "Counted as". The quick-log window from the widget has the same buttons. The app looks up the weather for that time and place itself.
 
 The **home-screen widget** shows today's suggestion, or what you logged if you've already logged today, with five buttons for the 1 to 5 scale. Tapping a number opens a small window over the home screen with that score picked and the clothes already ticked. Tap **Save** and the log goes into your note without the app opening. Tapping the suggestion opens the app. To add the widget, hold your finger on an empty part of the home screen, tap **Widgets**, find What to Wear and tap **Add**.
 
@@ -106,15 +106,22 @@ For trying the app without a phone there is an emulator (a pretend phone on the 
 | `widget/` | The home-screen widget, the job that refreshes its suggestion every two hours, and its redraw after an update |
 | `reminder/Reminders.kt` | The 5pm reminder |
 | `data/Logs.kt` | Loads the logs the same way for the app, the widget and the reminder |
+| `model/OutfitReader.kt` | The instructions sent to the AI, and checking its answer |
+| `data/AiClient.kt` | Sends a photo or description to OpenAI, and shrinks photos first |
+| `ui/AiFill.kt` | The photo and describe buttons on the Log tab and in the quick-log window |
 | `analysis/` | The calibration script and its graphs |
 
 ## Privacy
 
-There are no accounts and no server. The weather comes from [Open-Meteo](https://open-meteo.com), which needs no key. The only data that leaves the phone is your rough location (or a place you searched for), sent to Open-Meteo to get the weather. The app asks for approximate location only.
+There are no accounts and no server of its own. The weather comes from [Open-Meteo](https://open-meteo.com), which needs no key, and gets your rough location (or a place you searched for). The app asks for approximate location only.
+
+When you use **fill in with AI**, the photo (shrunk to 1024 pixels on its longest side) or your description goes to OpenAI, along with the list of clothes. That happens only when you tap a button. The app deletes the photo straight after sending it and keeps only the ticks. OpenAI's own data policies apply to what it receives.
+
+The OpenAI key is put into the app when it's built on Richie's Mac, from his key file (`OPENAI_API_KEY_WHATTOWEAR` if it exists, otherwise `OPENAI_API_KEY_MISC`). It is never in this repository, but anyone with the app file could dig it out, so the app file shouldn't be shared. A key made just for this app, with a spending limit, is safest. Built without a key (on GitHub, say), the AI buttons say the AI isn't set up.
 
 ## Status
 
-Version 0.9, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
+Version 0.10, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
 
 ## Licence and credits
 

@@ -1,6 +1,9 @@
 package com.richie.whattowear
 
 import android.app.Application
+import com.richie.whattowear.model.SuggestedClothing
+import com.richie.whattowear.model.AiOutfit
+import com.richie.whattowear.data.AiClient
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +71,8 @@ data class LogDraft(
     val itemIds: Set<String> = emptySet(),
     val feeling: Feeling? = null,
     val note: String = "",
+    /** What he typed in "Describe what you're wearing", kept as his own words for the note. */
+    val woreWords: String = "",
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -136,6 +141,54 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Starts a log from the widget or the reminder: "Now", with the score and clothes already chosen. */
     fun startQuickLog(feeling: Feeling?, itemIds: List<String>) {
         draft = LogDraft(place = place, itemIds = itemIds.toSet(), feeling = feeling)
+        aiResult = null
+    }
+
+    /** What the AI is doing right now ("Looking at your photo…"), or null. */
+    var aiBusy by mutableStateOf<String?>(null)
+        private set
+    var aiProblem by mutableStateOf<String?>(null)
+        private set
+
+    /** What the AI made of the last photo or description, shown under the buttons until the log is saved. */
+    var aiResult by mutableStateOf<AiOutfit?>(null)
+        private set
+
+    fun fillFromDescription(words: String) = askAi("Reading your description…", words) { AiClient.fromDescription(words) }
+
+    fun fillFromPhoto(jpeg: ByteArray) = askAi("Looking at your photo…", null) { AiClient.fromPhoto(jpeg) }
+
+    private fun askAi(status: String, words: String?, ask: suspend () -> AiOutfit) {
+        viewModelScope.launch {
+            aiBusy = status
+            aiProblem = null
+            try {
+                useAiOutfit(ask(), words)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                aiProblem = when (e) {
+                    is IllegalArgumentException -> e.message
+                    is IOException -> e.message?.takeIf { it.startsWith("The AI") || it.startsWith("OpenAI") }
+                        ?: "Couldn't reach the AI. Check your internet and try again."
+                    else -> "Something went wrong: ${e.message}"
+                }
+            } finally {
+                aiBusy = null
+            }
+        }
+    }
+
+    /** Ticks what the AI found (replacing the earlier ticks: a photo or description is the whole outfit). */
+    fun useAiOutfit(outfit: AiOutfit, words: String?) {
+        aiResult = outfit
+        editDraft { it.copy(itemIds = outfit.itemIds.toSet(), woreWords = words?.trim().orEmpty()) }
+    }
+
+    /** Adds something the AI spotted that isn't on the list yet, and ticks it. */
+    fun addSuggested(s: SuggestedClothing) {
+        addCustomClothing(s.name, s.slot, s.level, s.keepsRainOff)
+        aiResult = aiResult?.let { it.copy(suggestions = it.suggestions - s) }
     }
 
     init {
@@ -328,6 +381,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     feeling = feeling,
                     weather = weather,
                     note = d.note.trim(),
+                    wore = d.woreWords.trim(),
                 )
                 val uri = noteUri
                 withContext(Dispatchers.IO) {
@@ -340,6 +394,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
                 draft = LogDraft(place = p)
+                aiResult = null
                 reloadEntries()
                 // The widget now shows what you're wearing.
                 WidgetUpdates.refreshNow(getApplication())

@@ -20,15 +20,17 @@ object LogRow {
         feeling: Feeling,
         note: String,
         weather: WeatherSummary,
+        /** Richie's own description, if he typed one. It goes in "What I wore", with the app's names in "Counted as". */
+        wore: String = "",
     ): Map<String, String> = mapOf(
         // His columns, filled the way he fills them: the real temperature in whole degrees and Y/N for wind.
         NoteTable.TEMPERATURE to weather.tempMeanC.roundToInt().toString(),
         NoteTable.WIND to if (weather.windMaxKmh >= WINDY_KMH) "Y" else "N",
-        // The app's own names, so "Counted as" can stay blank.
-        NoteTable.WORE to items.joinToString(", ") { it.name },
+        // His own words if he typed them (like his old rows), otherwise the app's names.
+        NoteTable.WORE to wore.trim().ifBlank { items.joinToString(", ") { it.name } },
         NoteTable.FELT to feeling.label + if (note.isBlank()) "" else ". " + note.trim(),
         NoteTable.SCORE to feeling.score.toString(),
-        NoteTable.COUNTED_AS to "",
+        NoteTable.COUNTED_AS to if (wore.isBlank()) "" else items.joinToString(", ") { it.name },
         NoteTable.FEELS to String.format(Locale.US, "%.1f", weather.dressTempC),
         // A sortable date, then the time for "Now" logs or the part of the day.
         NoteTable.DATE to "$date " + if (timeOfDay == TimeOfDay.NOW) savedAt.format(DateTimeFormatter.ofPattern("HH:mm"))

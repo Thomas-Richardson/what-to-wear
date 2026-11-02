@@ -20,10 +20,16 @@ Read `README.md` for how the app works and `docs/why.md` for why it is built thi
 - New versions reach his phone as `What to Wear.apk` in his Google Drive. Replace the existing file in place. Don't upload a second copy.
 - Emulator: `$ANDROID_HOME/emulator/emulator -avd Pixel8a_test`. Before starting or stopping it, check whether it's already running (`pgrep -fl qemu`). If Richie started it, install onto it with `adb install -r` and leave it running. It has no Wi-Fi location, so give it one with `adb emu geo fix -122.4194 37.7749`.
 
+## The AI fill-in
+
+- Never put an API key in the repository. `app/build.gradle.kts` reads `OPENAI_API_KEY_WHATTOWEAR` or `OPENAI_API_KEY_MISC` from the environment at build time, and `build-and-install.sh` loads them from `~/.config/llm/env`. The model name is set there too.
+- Check a build has its key without showing it: `grep -c 'OPENAI_KEY = "sk-' app/build/generated/source/buildConfig/debug/com/richie/whattowear/BuildConfig.java`.
+- The AI only ticks clothes. It must never save a log by itself.
+
 ## Tests
 
 - Run all of them (`./gradlew testDebugUnitTest`) before shipping a version. GitHub also runs them on every push (`.github/workflows/tests.yml`).
-- Tests never go online. For weather, save a real reply in `app/src/test/resources` and check it against figures worked out separately.
+- Tests never go online. For weather or AI answers, save a real reply in `app/src/test/resources` and check against it.
 - When fixing a bug, first write a test that fails because of it, and check it passes only with the fix.
 - Screen tests use Robolectric (`robolectric.properties` sets the imitation phone to Android 14, which the Robolectric version supports). Scroll to anything below the bottom of the screen before tapping it, as a finger would.
 

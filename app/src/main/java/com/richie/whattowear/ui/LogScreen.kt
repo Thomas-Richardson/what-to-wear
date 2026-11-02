@@ -119,6 +119,8 @@ fun LogScreen(vm: MainViewModel, onUseMyLocation: () -> Unit) {
             PlaceRow(name = d.place?.name ?: "Choose a place", usingGps = false, onChange = { choosingPlace = true })
         }
 
+        AiFill(vm)
+
         ClothesPicker(
             clothes = clothes,
             selected = d.itemIds,

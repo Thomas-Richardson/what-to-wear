@@ -20,6 +20,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.richie.whattowear.model.Feeling
+import com.richie.whattowear.model.OutfitReader
 import com.richie.whattowear.model.TimeOfDay
 import com.richie.whattowear.model.Wardrobe
 import com.richie.whattowear.reminder.ReminderWorker
@@ -130,8 +131,29 @@ class ScreensTest {
         compose.onNodeWithText("Just right").performClick()
         compose.onNodeWithText("Save").assertIsEnabled()
         compose.onNodeWithText("Layer").assertDoesNotExist()
-        compose.onNodeWithText("Other clothes").performClick()
+        compose.onNodeWithText("Other clothes").performScrollTo().performClick()
         compose.onNodeWithText("Layer").assertExists()
+    }
+
+    @Test
+    fun whatTheAiFindsIsTickedAndNewClothesCanBeAddedInOneTap() {
+        val vm = MainViewModel(app)
+        compose.setContent { WhatToWearTheme { LogScreen(vm, onUseMyLocation = {}) } }
+        compose.onNodeWithText("📷 Take photo").assertExists()
+        compose.onNodeWithText("🖼️ Choose photo").assertExists()
+        // The AI's real answer from earlier, applied as if it had just come back.
+        val outfit = OutfitReader.parse(
+            """{"items":["blazer","shirt","trousers"],"new":[{"name":"Kilt","group":"Bottoms","warmth":"medium"}],"unsure":"the scarf"}""",
+            Wardrobe.items,
+        )
+        compose.runOnIdle { vm.useAiOutfit(outfit, "tweed jacket, oxford, chinos, a kilt") }
+        assertEquals(setOf("shirt", "blazer", "trousers"), vm.draft.itemIds)
+        assertEquals("tweed jacket, oxford, chinos, a kilt", vm.draft.woreWords)
+        compose.onNodeWithText("Ticked 3 below. Check them and change anything that's wrong.").assertExists()
+        compose.onNodeWithText("Not sure: the scarf").assertExists()
+        compose.onNodeWithText("＋ Add Kilt").performScrollTo().performClick()
+        assertTrue(vm.draft.itemIds.toString(), "custom_kilt" in vm.draft.itemIds)
+        compose.onNodeWithText("＋ Add Kilt").assertDoesNotExist()
     }
 
     @Test

@@ -13,8 +13,16 @@ android {
         applicationId = "com.richie.whattowear"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.9"
+        versionCode = 10
+        versionName = "0.10"
+
+        // The AI key comes from Richie's key file when the app is built on his Mac (build-and-install.sh
+        // loads it). It ends up inside the app file in his private Drive, never in this repository.
+        // Built without a key (on GitHub, say), the AI buttons say the AI isn't set up.
+        val aiKey = providers.environmentVariable("OPENAI_API_KEY_WHATTOWEAR")
+            .orElse(providers.environmentVariable("OPENAI_API_KEY_MISC")).getOrElse("").trim()
+        buildConfigField("String", "OPENAI_KEY", "\"${aiKey.replace("\\", "").replace("\"", "")}\"")
+        buildConfigField("String", "AI_MODEL", "\"gpt-6.1-terra\"")
     }
 
     buildTypes {
@@ -31,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     testOptions {
         // Screen tests run on the Mac (and on GitHub) with Robolectric, which needs the app's resources.

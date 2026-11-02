@@ -23,6 +23,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Lets the camera app save a photo straight into the app's private cache, for the AI to read. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.photos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/photo_paths" />
+        </provider>
+
         <!-- Logging from the widget or the reminder, without opening the app. -->
         <activity
             android:name=".QuickLogActivity"

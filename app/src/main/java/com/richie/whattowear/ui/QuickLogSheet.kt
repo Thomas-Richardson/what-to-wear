@@ -92,6 +92,7 @@ fun QuickLogSheet(vm: MainViewModel, onClose: () -> Unit) {
                     )
                 }
                 FeelingRow(d.feeling) { f -> vm.editDraft { it.copy(feeling = f) } }
+                AiFill(vm)
 
                 val toggle = { id: String ->
                     vm.editDraft { it.copy(itemIds = if (id in it.itemIds) it.itemIds - id else it.itemIds + id) }

@@ -59,6 +59,8 @@ data class WearLog(
     val feeling: Feeling,
     val weather: WeatherSummary,
     val note: String = "",
+    /** His own description of the outfit, if he typed one. */
+    val wore: String = "",
 ) {
     val localDate: LocalDate get() = LocalDate.parse(date)
     val warmth: Double get() = Wardrobe.warmthOf(itemIds)
@@ -70,11 +72,11 @@ data class WearLog(
         key = "log:$id", date = localDate,
         whenLabel = if (timeOfDay == TimeOfDay.NOW) savedAt.format(DateTimeFormatter.ofPattern("HH:mm")) else timeOfDay.label.lowercase(),
         place = placeName, realTempC = weather.tempMeanC, dressTempC = weather.dressTempC,
-        weather = weather.words(), itemIds = itemIds, feeling = feeling, felt = note,
+        weather = weather.words(), itemIds = itemIds, feeling = feeling, felt = note, wore = wore,
     )
 
     /** The same log as a row for the temperatures note. */
-    fun toNoteValues() = LogRow.values(localDate, timeOfDay, savedAt, placeName, items, feeling, note, weather)
+    fun toNoteValues() = LogRow.values(localDate, timeOfDay, savedAt, placeName, items, feeling, note, weather, wore)
 }
 
 data class Place(val name: String, val latitude: Double, val longitude: Double, val detail: String? = null)

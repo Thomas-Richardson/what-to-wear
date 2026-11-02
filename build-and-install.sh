@@ -6,6 +6,8 @@ set -e
 cd "$(dirname "$0")"
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+# The AI key for photo and description logging (OPENAI_API_KEY_WHATTOWEAR, or OPENAI_API_KEY_MISC).
+set -a; [ -f ~/.config/llm/env ] && . ~/.config/llm/env; set +a
 
 ./gradlew assembleDebug
 cp app/build/outputs/apk/debug/app-debug.apk "What to Wear.apk"

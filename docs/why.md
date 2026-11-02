@@ -41,6 +41,16 @@ The app adds its six columns (Score, Counted as, Feels like °C, Date, Place, We
 
 When the app changes the note it adds or removes exactly one line. The rest of the file stays byte for byte as it was. New rows go in by temperature, after the other rows at the same temperature, which is the order the skill already used.
 
+## Filling in with AI
+
+Richie asked to "accept a picture of what I am wearing" and send it to "GPT-6 Terra or something", and for "an open text box where I can just word dump what I'm wearing in, instead of choosing from the menu". Both serve the same aim as the rest of the Log tab: capture has to be effortless.
+
+The model is OpenAI's gpt-6.1-terra, the closest match on his account to what he named (there's no plain "gpt-6-terra"). Before building on it, it was tested on a drawn image and on a messy description. It read the image, mapped "tweed jacket, white oxford, chinos, my navy pea coat on top, and a kilt for some reason. also trainers" to Blazer, Shirt, Trousers / jeans and his own Navy pea coat, offered the kilt as new, and left out the trainers. It answers in about three seconds.
+
+The AI never saves anything by itself. It ticks the clothes, and Richie checks them and saves as usual, because an AI that misreads a photo would otherwise teach the app the wrong outfit. Its answer replaces the earlier ticks, because a photo or a description is the whole outfit. Clothes that aren't on the list come back as "＋ Add" buttons, so his own clothes list grows as he goes. When he describes the outfit, his words go in the note's "What I wore" column and the app's reading in "Counted as", the same shape as his rows from before the app.
+
+The app talks to OpenAI directly, without a server of its own, which keeps it free of accounts and sign-ins. That means the key has to be inside the app. It's added when the app is built on his Mac, from his key file, so it never reaches the public repository. The cost is that anyone with the app file could dig the key out, which is why the app file isn't for sharing, and why a separate key with a spending limit is the safer choice.
+
 ## A reminder at 5pm
 
 Success means it is "effortless to remember to log", so the app reminds him. At 5pm, on days with no log yet, a notification asks "How does your outfit feel?" and opens the quick-log window. It stays quiet on days he has already logged, so it never nags about something already done. 5pm is a guess at a time when he has been out in the day's weather. It's one number in `reminder/Reminders.kt` and easy to change, and the reminder can be switched off on the History tab.
