@@ -23,7 +23,7 @@ class WidgetTest {
     fun showsTodaysSuggestionAndTheFiveButtons() = runGlanceAppWidgetUnitTest {
         val state = WidgetState(listOf("shirt", "blazer", "trousers"), fromTodaysLog = false, "⛅ feels like 11°C · Manchester", today)
         provideComposable { GlanceTheme { WidgetContent(context, state) } }
-        onNode(hasText("Wear today")).assertExists()
+        onNode(hasText("WEAR TODAY")).assertExists()
         onNode(hasText("Shirt · Blazer · Trousers / jeans")).assertExists()
         onNode(hasText("⛅ feels like 11°C · Manchester")).assertExists()
         // Exact text: "1" on its own is a button, the 1 in "11°C" isn't.
@@ -33,7 +33,7 @@ class WidgetTest {
     @Test
     fun saysWearingOnceYouveLoggedToday() = runGlanceAppWidgetUnitTest {
         provideComposable { GlanceTheme { WidgetContent(context, WidgetState(listOf("gilet"), true, "", today)) } }
-        onNode(hasText("Wearing today")).assertExists()
+        onNode(hasText("WEARING TODAY")).assertExists()
     }
 
     @Test

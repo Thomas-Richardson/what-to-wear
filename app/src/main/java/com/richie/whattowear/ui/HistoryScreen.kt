@@ -2,6 +2,12 @@ package com.richie.whattowear.ui
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.richie.whattowear.update.Updater
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -59,12 +65,15 @@ fun HistoryScreen(vm: MainViewModel, onConnectNote: () -> Unit) {
     var toRemove by remember { mutableStateOf<CustomClothing?>(null) }
 
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { DecoDivider() }
         item { NoteCard(vm, onConnectNote) }
         item { ReminderCard(vm) }
+        item { AiKeyCard(vm) }
+        item { UpdateCard(vm) }
         item { LearntCard(recommender, vm.entries.size) }
         if (vm.noteName == null && vm.entries.isNotEmpty()) {
             item {
-                OutlinedButton(onClick = { share(context, vm.exportJson()) }) {
+                OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { share(context, vm.exportJson()) }) {
                     Icon(Icons.Default.Share, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Export my logs")
@@ -123,11 +132,20 @@ fun NoteCard(vm: MainViewModel, onConnectNote: () -> Unit) {
             when {
                 problem != null -> {
                     Text(problem, style = MaterialTheme.typography.bodyMedium)
-                    if (vm.noteDamaged) OutlinedButton(onClick = vm::reloadEntries) { Text("Check again") }
-                    else OutlinedButton(onClick = onConnectNote) { Text("Connect it again") }
+                    if (vm.noteDamaged) OutlinedButton(shape = MaterialTheme.shapes.small, onClick = vm::reloadEntries) { Text("Check again") }
+                    else OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onConnectNote) { Text("Connect it again") }
                 }
                 name != null -> {
                     Text("Your logs live in \"$name\" in Obsidian.", style = MaterialTheme.typography.bodyMedium)
+                    if (vm.rowsWithExtraCells.isNotEmpty()) {
+                        Text(
+                            "${plural(vm.rowsWithExtraCells.size, "row")} in the note ${if (vm.rowsWithExtraCells.size == 1) "has" else "have"} " +
+                                "more cells than there are headings, so the app leaves ${if (vm.rowsWithExtraCells.size == 1) "it" else "them"} out " +
+                                "until fixed in Obsidian: ${vm.rowsWithExtraCells.joinToString("; ")}.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                     if (vm.skippedRows > 0) {
                         Text(
                             "${plural(vm.skippedRows, "row")} there can't be used yet: each needs a Score and clothes the app knows.",
@@ -142,7 +160,7 @@ fun NoteCard(vm: MainViewModel, onConnectNote: () -> Unit) {
                             "so you can see them on your Mac. The app learns from the rows already there.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    OutlinedButton(onClick = onConnectNote) { Text("Connect my note") }
+                    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onConnectNote) { Text("Connect my note") }
                 }
             }
         }
@@ -164,6 +182,83 @@ private fun ReminderCard(vm: MainViewModel) {
                 )
             }
             Switch(checked = vm.reminderOn, onCheckedChange = vm::setReminder)
+        }
+    }
+}
+
+/** Where Richie pastes his OpenAI key for "Fill in with AI". It stays on the phone. */
+@Composable
+private fun AiKeyCard(vm: MainViewModel) {
+    var typed by remember { mutableStateOf("") }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Fill in with AI", style = MaterialTheme.typography.titleSmall)
+            if (vm.aiKeySaved) {
+                Text(
+                    "Set up. Your OpenAI key is saved on this phone only.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = vm::removeAiKey) { Text("Remove key") }
+            } else {
+                Text(
+                    "To fill in your clothes from a photo or your own words, paste an OpenAI API key " +
+                        "(from platform.openai.com/api-keys). It's saved on this phone only.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = typed,
+                    onValueChange = { typed = it },
+                    label = { Text("OpenAI key") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedButton(shape = MaterialTheme.shapes.small, onClick = {
+                    vm.saveAiKey(typed)
+                    typed = ""
+                }) { Text("Save key") }
+            }
+        }
+    }
+}
+
+/** The app's version, and the button that fetches a newer one from GitHub. */
+@Composable
+private fun UpdateCard(vm: MainViewModel) {
+    val context = LocalContext.current
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Updates", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "You're on version ${vm.appVersion}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            vm.updateStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            val update = vm.update
+            if (update == null) {
+                OutlinedButton(shape = MaterialTheme.shapes.small, onClick = vm::checkForUpdate) { Text("Check for updates") }
+            } else {
+                if (update.notes.isNotBlank()) {
+                    Text(
+                        update.notes.lines().filter { it.isNotBlank() }.take(4).joinToString("\n"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Button(shape = MaterialTheme.shapes.small, onClick = {
+                    if (Updater.canInstall(context)) {
+                        vm.installUpdate()
+                    } else {
+                        // Android's one-off switch: "Allow from this source". Then come back and tap again.
+                        context.startActivity(Updater.allowInstallsIntent(context))
+                        vm.message = "Turn on \"Allow from this source\", then come back and tap Install again."
+                    }
+                }) { Text("Install version ${update.version}") }
+            }
         }
     }
 }

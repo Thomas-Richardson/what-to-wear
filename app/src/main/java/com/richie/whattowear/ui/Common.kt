@@ -1,8 +1,6 @@
 package com.richie.whattowear.ui
 
-import android.os.Build
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -28,10 +26,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,23 +41,10 @@ import com.richie.whattowear.model.Place
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-/** Uses the phone's own wallpaper colours on Android 12 and up, as Pixel apps do. */
-@Composable
-fun WhatToWearTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    val context = LocalContext.current
-    val colors = when {
-        Build.VERSION.SDK_INT >= 31 -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        dark -> darkColorScheme()
-        else -> lightColorScheme()
-    }
-    MaterialTheme(colorScheme = colors, content = content)
-}
-
 @Composable
 fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
+        SectionLabel(title)
         content()
     }
 }
@@ -112,7 +93,7 @@ fun PlaceDialog(
         title = { Text("Where?") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onUseMyLocation, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onUseMyLocation, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.LocationOn, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Use my location")

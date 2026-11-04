@@ -1,5 +1,8 @@
 package com.richie.whattowear
 
+import com.richie.whattowear.model.Release
+import com.richie.whattowear.model.UpdateCheck
+import com.richie.whattowear.update.Updater
 import android.app.Application
 import com.richie.whattowear.model.SuggestedClothing
 import com.richie.whattowear.model.AiOutfit
@@ -103,6 +106,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Rows in the note that couldn't be used, e.g. a score or clothes missing. */
     var skippedRows by mutableStateOf(0)
+
+    /** Short descriptions of note rows with more cells than headings, which the app leaves out. */
+    var rowsWithExtraCells by mutableStateOf<List<String>>(emptyList())
         private set
     var place by mutableStateOf(settings.place)
         private set
@@ -154,6 +160,77 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var aiResult by mutableStateOf<AiOutfit?>(null)
         private set
 
+    /** This app's version, and the newer one on GitHub once "Check for updates" has found it. */
+    val appVersion: String = BuildConfig.VERSION_NAME
+    var update by mutableStateOf<Release?>(null)
+        private set
+    var updateStatus by mutableStateOf<String?>(null)
+        private set
+    var updateBusy by mutableStateOf(false)
+        private set
+
+    fun checkForUpdate() {
+        if (updateBusy) return
+        viewModelScope.launch {
+            updateBusy = true
+            updateStatus = "Checking…"
+            try {
+                val latest = Updater.latest()
+                update = latest?.takeIf { UpdateCheck.isNewer(it.version, appVersion) }
+                updateStatus = when {
+                    update != null -> "Version ${latest!!.version} is ready."
+                    latest == null -> "No versions have been published on GitHub yet."
+                    else -> "You have the latest version."
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                updateStatus = "Couldn't check. Check your internet and try again."
+            } finally {
+                updateBusy = false
+            }
+        }
+    }
+
+    /** Downloads the newer version and hands it to Android, which asks Richie to confirm. */
+    fun installUpdate() {
+        val release = update ?: return
+        if (updateBusy) return
+        viewModelScope.launch {
+            updateBusy = true
+            try {
+                val file = Updater.download(getApplication(), release) { updateStatus = "Downloading… $it%" }
+                updateStatus = "Android will ask you to confirm the update."
+                Updater.install(getApplication(), file)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                updateStatus = "The update didn't download (${e.message ?: "no reason given"}). Check your internet and try again."
+            } finally {
+                updateBusy = false
+            }
+        }
+    }
+
+    /** Whether an OpenAI key is saved on this phone, for the History tab. */
+    var aiKeySaved by mutableStateOf(false)
+        private set
+
+    fun saveAiKey(key: String) {
+        settings.aiKey = key
+        AiClient.key = settings.aiKey
+        aiKeySaved = AiClient.isSetUp
+        aiProblem = null
+        message = if (aiKeySaved) "Key saved on this phone." else null
+    }
+
+    fun removeAiKey() {
+        settings.aiKey = ""
+        AiClient.key = ""
+        aiKeySaved = false
+        message = "Key removed from this phone."
+    }
+
     fun fillFromDescription(words: String) = askAi("Reading your description…", words) { AiClient.fromDescription(words) }
 
     fun fillFromPhoto(jpeg: ByteArray) = askAi("Looking at your photo…", null) { AiClient.fromPhoto(jpeg) }
@@ -192,6 +269,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     init {
+        AiClient.key = settings.aiKey
+        aiKeySaved = AiClient.isSetUp
         reloadEntries()
     }
 
@@ -204,6 +283,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val loaded = withContext(Dispatchers.IO) { Logs.load(getApplication()) }
                 entries = loaded.entries
                 skippedRows = loaded.skippedRows
+                rowsWithExtraCells = loaded.rowsWithExtraCells
                 noteProblem = null
                 noteDamaged = false
             } catch (e: CancellationException) {

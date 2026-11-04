@@ -17,14 +17,21 @@ Read `README.md` for how the app works and `docs/why.md` for why it is built thi
 - Tests: `./gradlew testDebugUnitTest`. Build: `./build-and-install.sh` or `./gradlew assembleDebug`.
 - Raise `versionCode` and `versionName` in `app/build.gradle.kts` for every version that goes to his phone.
 - Build only on Richie's Mac. Updates install over the existing app only if signed with `~/.android/debug.keystore` from that Mac. Building elsewhere would force an uninstall, which loses his own clothes and the connection to the note.
-- New versions reach his phone as `What to Wear.apk` in his Google Drive. Replace the existing file in place. Don't upload a second copy.
+- Each version is a GitHub release, which the app's **Check for updates** button reads: tag `v<versionName>`, with the app file built on his Mac attached as `what-to-wear-<versionName>.apk`. The app only downloads files attached to this repository's releases.
+- Before publishing, check the app file holds no key: `unzip -p "What to Wear.apk" 'classes*.dex' | LC_ALL=C grep -a -c -E "sk-(proj-)?[A-Za-z0-9_-]{20,}"` must print 0.
+- Also replace `What to Wear.apk` in his Google Drive in place, as a backup for fresh installs. Don't upload a second copy.
 - Emulator: `$ANDROID_HOME/emulator/emulator -avd Pixel8a_test`. Before starting or stopping it, check whether it's already running (`pgrep -fl qemu`). If Richie started it, install onto it with `adb install -r` and leave it running. It has no Wi-Fi location, so give it one with `adb emu geo fix -122.4194 37.7749`.
 
 ## The AI fill-in
 
-- Never put an API key in the repository. `app/build.gradle.kts` reads `OPENAI_API_KEY_WHATTOWEAR` or `OPENAI_API_KEY_MISC` from the environment at build time, and `build-and-install.sh` loads them from `~/.config/llm/env`. The model name is set there too.
-- Check a build has its key without showing it: `grep -c 'OPENAI_KEY = "sk-' app/build/generated/source/buildConfig/debug/com/richie/whattowear/BuildConfig.java`.
+- Never put an API key in the repository or the app file: the app file is published. Since 0.11 Richie pastes his OpenAI key on the History tab and it's kept in the app's private storage on the phone (`Settings.aiKey`). The model name is in `app/build.gradle.kts`.
+- To try the AI on the emulator, paste a key into the emulator's History tab yourself; never build one in.
 - The AI only ticks clothes. It must never save a log by itself.
+
+## Look
+
+- The app uses Richie's own branding. The rules are in the `richie-branding` skill on his Mac (`~/.claude/skills/richie-branding/SKILL.md`), and the colours, font and shapes are in `ui/Theme.kt`. Use those, not Material's defaults or the wallpaper colours.
+- Gold is for lines and borders only, never for text on ivory (it's too pale to read).
 
 ## Tests
 

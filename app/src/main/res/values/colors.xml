@@ -1,3 +1,6 @@
 <resources>
-    <color name="icon_background">#3A7BD5</color>
+    <!-- Richie's navy (see ui/Theme.kt). -->
+    <color name="icon_background">#1C2541</color>
+    <color name="brand_ivory">#F6F1E3</color>
+    <color name="brand_navy">#1C2541</color>
 </resources>

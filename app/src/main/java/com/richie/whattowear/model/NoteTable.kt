@@ -19,8 +19,15 @@ class NoteTable private constructor(
     /** Every row with something in it, in the note's order. */
     val rows: List<NoteRow> = (headerAt + 2..lastRowAt).mapNotNull { i ->
         val cells = cellsByColumn(lines[i])
-        if (cells.values.all { it.isBlank() }) null else NoteRow.from(cells, lines[i])
+        if (cells.values.all { it.isBlank() }) null
+        else NoteRow.from(cells, lines[i], extraCells = splitRow(lines[i]).size > columns.size)
     }
+
+    /**
+     * Rows with more cells than there are headings. The app can't tell which value belongs in which
+     * column, so it leaves them out and says so, rather than learn from values in the wrong place.
+     */
+    val rowsWithExtraCells: List<NoteRow> = rows.filter { it.extraCells }
 
     val hasAppColumns: Boolean get() = APP_COLUMNS.keys.all { it in columns }
 
@@ -35,7 +42,11 @@ class NoteTable private constructor(
     val damage: String? = when {
         (headerAt + 2..lastRowAt).any { isDivider(lines[it]) } -> "it has two heading rows"
         columns.filter { it.isNotEmpty() }.let { it.size != it.toSet().size } -> "it has the same column twice"
-        else -> null
+        // Two known headings run together in one cell, like "Counted as   Score" (seen on 1 Nov 2026).
+        else -> splitRow(lines[headerAt]).firstOrNull { heading ->
+            val key = columnKey(heading)
+            key !in KNOWN_COLUMNS && KNOWN_COLUMNS.count { it in key } >= 2
+        }?.let { "a heading looks garbled ($it)" }
     }
 
     /**
@@ -129,6 +140,9 @@ class NoteTable private constructor(
             WEATHER to "Weather",
         )
 
+        /** His four columns and the app's six. */
+        private val KNOWN_COLUMNS = setOf(TEMPERATURE, WIND, WORE, FELT) + APP_COLUMNS.keys
+
         private val HEADER = Regex("""^\s*\|\s*Temperature\s*\|""", RegexOption.IGNORE_CASE)
 
         /** Reads the note's text. Null if it has no table starting with a "Temperature" column. */
@@ -176,6 +190,8 @@ data class NoteRow(
     val place: String,
     val weather: String,
     val line: String,
+    /** True if the row has more cells than the note has headings (see [NoteTable.rowsWithExtraCells]). */
+    val extraCells: Boolean = false,
 ) {
     val feeling: Feeling? get() = Feeling.entries.firstOrNull { it.score == score }
 
@@ -190,6 +206,7 @@ data class NoteRow(
 
     /** A log the app can learn from, or null if the row is missing a score, clothes or temperature. */
     fun toEntry(): Entry? {
+        if (extraCells) return null
         val feeling = feeling ?: return null
         val t = dressTempC ?: return null
         if (itemIds.isEmpty()) return null
@@ -201,7 +218,7 @@ data class NoteRow(
     }
 
     companion object {
-        fun from(cells: Map<String, String>, line: String): NoteRow {
+        fun from(cells: Map<String, String>, line: String, extraCells: Boolean = false): NoteRow {
             val dateCell = cells[NoteTable.DATE].orEmpty()
             return NoteRow(
                 realTempC = cells[NoteTable.TEMPERATURE]?.toDoubleOrNull(),
@@ -220,6 +237,7 @@ data class NoteRow(
                 place = cells[NoteTable.PLACE].orEmpty(),
                 weather = cells[NoteTable.WEATHER].orEmpty(),
                 line = line,
+                extraCells = extraCells,
             )
         }
     }

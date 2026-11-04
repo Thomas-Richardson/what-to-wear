@@ -1,5 +1,7 @@
 <resources>
-    <style name="Theme.WhatToWear" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.WhatToWear" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/brand_ivory</item>
+    </style>
 
     <!-- The quick-log window: see-through, so it sits over the home screen. -->
     <style name="Theme.WhatToWear.Translucent" parent="android:Theme.Material.Light.NoActionBar">

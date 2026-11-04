@@ -79,6 +79,14 @@ class Settings(context: Context) {
         get() = prefs.getString("note_name", null)
         set(value) = prefs.edit().putString("note_name", value).apply()
 
+    /**
+     * Richie's OpenAI key for "Fill in with AI", pasted on the History tab. It's kept only in the app's
+     * private storage on the phone, so the app file itself holds no secrets and can be published.
+     */
+    var aiKey: String
+        get() = prefs.getString("ai_key", "").orEmpty()
+        set(value) = prefs.edit().putString("ai_key", value.trim()).apply()
+
     /** The 5pm reminder to log. On unless switched off on the History tab. */
     var reminderOn: Boolean
         get() = prefs.getBoolean("reminder_on", true)

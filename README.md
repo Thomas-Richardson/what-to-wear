@@ -56,12 +56,15 @@ Richie's note records the real temperature, but the app works in feels-like. `an
 
 ## Installing and updating on the phone
 
-The app isn't on the Play Store. It is installed from a file called `What to Wear.apk`.
+The app isn't on the Play Store. Each version is published on this repository's [Releases page](https://github.com/Thomas-Richardson/what-to-wear/releases) as `what-to-wear-<version>.apk`, and Richie also keeps a copy called `What to Wear.apk` in his Google Drive.
 
-1. On the phone, open the file (Richie keeps it in his Google Drive) and tap **Install**, or **Update** if an older version is installed.
-2. The first time, Android blocks installs from Drive. Tap **Settings**, turn on **Allow from this source**, go back and tap **Install**.
+1. On the phone, open the file and tap **Install**.
+2. The first time, Android blocks installs from that app (Drive or Chrome). Tap **Settings**, turn on **Allow from this source**, go back and tap **Install**.
 3. If Google Play Protect warns about an unknown app, tap **More details**, then **Install anyway**.
 4. Open the app, allow location **while using the app**, and tap **Connect my note**. Pick "How do I feel at different temperatures" from the vault folder.
+5. To use **fill in with AI**, paste an OpenAI key on the History tab (see Privacy below).
+
+From version 0.11, updating is a button: **History › Updates › Check for updates**, then **Install version …** if there's a newer one. The first time, Android asks you to let What to Wear install apps: turn on **Allow from this source**, come back and tap Install again. Android then asks you to confirm the update. It may skip that question for later updates, because the app installed the current version itself; Android decides.
 
 Updating keeps your logs and your own clothes. Updates only install over the existing app if they're built on the same computer as the first install, because Android checks that each update is signed with the same key. The key is `~/.android/debug.keystore` on Richie's Mac. Uninstalling the app doesn't touch the note, but it deletes your own clothes and the app's connection to the note.
 
@@ -79,12 +82,13 @@ That builds `What to Wear.apk` in the project folder, and installs it if a phone
 cd ~/Documents/"What to wear app" && ./gradlew testDebugUnitTest
 ```
 
-There are 80 tests, in `app/src/test`, and none of them goes online:
+There are 95 tests, in `app/src/test`, and none of them goes online:
 
 | Kind | Files | What they check |
 | --- | --- | --- |
 | Outfit logic | `RecommenderTest`, `OutfitRulesTest`, `QuickLogTest`, `CustomClothingTest` | Learning from logs, plus rules that must hold in any weather from -8°C to 32°C: one top and one pair of bottoms, never two jackets, rain gear exactly when it rains, colder never means less warmth |
-| Your note | `NoteTableTest`, `NoteDetailsTest`, `RealNoteTest` | Adding or removing a log changes exactly one line, odd table shapes are read safely, a table doubled by Obsidian Sync is caught, and logs move into the note unchanged |
+| Your note | `NoteTableTest`, `NoteDetailsTest`, `RealNoteTest` | Adding or removing a log changes exactly one line, odd table shapes are read safely, a table doubled by Obsidian Sync or a garbled heading is caught, a row with more cells than headings is left out, and logs move into the note unchanged |
+| Updates | `UpdateCheckTest` | Reading GitHub's "latest release" reply (a real one, saved), only ever downloading from this repository, and comparing version numbers as numbers |
 | Weather | `WeatherParsingTest`, `NowTest`, `FeelingTest` | Real replies from the weather service, saved in `app/src/test/resources` (Manchester over the weekend the clocks went back), checked against figures worked out separately |
 | Screens and widget | `ScreensTest`, `WidgetTest` | Tapping the 1 to 5 buttons, the Log tab's Now choice, adding your own clothes, the quick-log window, the reminder switch and its 5pm timing, and what the widget shows |
 
@@ -102,6 +106,8 @@ For trying the app without a phone there is an emulator (a pretend phone on the 
 | `data/NoteStore.kt` | Opens the note on the phone through Android's file picker |
 | `data/WeatherClient.kt` | Gets forecasts and place names from Open-Meteo |
 | `ui/` | The Today, Log and History tabs, and the quick-log window |
+| `ui/Theme.kt` | Richie's branding: colours, the Jost font, corner shapes, the gold divider and the 1 to 5 colours |
+| `update/` | The update button: checks GitHub, downloads the new version and hands it to Android's installer |
 | `QuickLogActivity.kt` | Opens the quick-log window over the home screen, from the widget or the reminder |
 | `widget/` | The home-screen widget, the job that refreshes its suggestion every two hours, and its redraw after an update |
 | `reminder/Reminders.kt` | The 5pm reminder |
@@ -111,18 +117,24 @@ For trying the app without a phone there is an emulator (a pretend phone on the 
 | `ui/AiFill.kt` | The photo and describe buttons on the Log tab and in the quick-log window |
 | `analysis/` | The calibration script and its graphs |
 
+## Look
+
+The app uses Richie's own branding: minimal 1920s–30s Art Deco in navy, burgundy, forest green, ivory and gold, set in [Jost](https://fonts.google.com/specimen/Jost), a free font modelled on Futura. It follows the phone's light or dark mode. The 1 to 5 buttons run cold to hot: navy, slate, forest green, gold, burgundy. Everything is defined in `ui/Theme.kt`, and the widget uses the same colours.
+
 ## Privacy
 
 There are no accounts and no server of its own. The weather comes from [Open-Meteo](https://open-meteo.com), which needs no key, and gets your rough location (or a place you searched for). The app asks for approximate location only.
 
 When you use **fill in with AI**, the photo (shrunk to 1024 pixels on its longest side) or your description goes to OpenAI, along with the list of clothes. That happens only when you tap a button. The app deletes the photo straight after sending it and keeps only the ticks. OpenAI's own data policies apply to what it receives.
 
-The OpenAI key is put into the app when it's built on Richie's Mac, from his key file (`OPENAI_API_KEY_WHATTOWEAR` if it exists, otherwise `OPENAI_API_KEY_MISC`). It is never in this repository, but anyone with the app file could dig it out, so the app file shouldn't be shared. A key made just for this app, with a spending limit, is safest. Built without a key (on GitHub, say), the AI buttons say the AI isn't set up.
+The OpenAI key is one Richie pastes on the History tab. It's kept only in the app's private storage on the phone, so it's never in this repository or in the app file, and the app file can be published. A key made just for this app, with a spending limit, is safest. Without a key, the AI buttons say to add one.
+
+**Check for updates** asks GitHub's public API for this repository's newest release, only when tapped, and downloads only files attached to this repository's releases. Android also checks that any update is signed with the same key as the installed app.
 
 ## Status
 
-Version 0.10, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
+Version 0.11, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
 
 ## Licence and credits
 
-MIT licence (see `LICENSE`). Weather data by [Open-Meteo.com](https://open-meteo.com), under the CC BY 4.0 licence. The code was written by Claude Code (Anthropic) under Richie's direction.
+MIT licence (see `LICENSE`). Weather data by [Open-Meteo.com](https://open-meteo.com), under the CC BY 4.0 licence. The Jost font is by the Jost Project Authors, under the SIL Open Font License 1.1 (`third_party/Jost-OFL.txt`). The code was written by Claude Code (Anthropic) under Richie's direction.

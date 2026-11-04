@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- For the 5pm reminder to log. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- For "Check for updates": lets the app hand a new version to Android's installer. Android still
+         asks Richie to allow it once ("Install unknown apps"), and checks it's signed by his Mac. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android 12 and later may then skip the confirmation for updates the app installed itself. -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <application
         android:allowBackup="true"
@@ -51,6 +56,11 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <!-- Android's answer after the app hands it an update. -->
+        <receiver
+            android:name=".update.InstallResultReceiver"
+            android:exported="false" />
 
         <receiver
             android:name=".widget.WearWidgetReceiver"

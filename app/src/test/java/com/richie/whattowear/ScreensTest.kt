@@ -130,9 +130,9 @@ class ScreensTest {
         compose.onNodeWithText("Save").assertIsNotEnabled()
         compose.onNodeWithText("Just right").performClick()
         compose.onNodeWithText("Save").assertIsEnabled()
-        compose.onNodeWithText("Layer").assertDoesNotExist()
+        compose.onNodeWithText("LAYER").assertDoesNotExist()
         compose.onNodeWithText("Other clothes").performScrollTo().performClick()
-        compose.onNodeWithText("Layer").assertExists()
+        compose.onNodeWithText("LAYER").assertExists()
     }
 
     @Test

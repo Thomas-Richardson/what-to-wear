@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,6 +75,7 @@ fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () 
                 FilterChip(selected = vm.ahead == a, onClick = { vm.ahead = a }, label = { Text(a.label) })
             }
         }
+        DecoDivider()
 
         // Until the note is connected (or if it can't be read), say so here too: it's where the learning comes from.
         if (vm.noteName == null || vm.noteProblem != null) NoteCard(vm, onConnectNote)
@@ -83,6 +85,7 @@ fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () 
                 WeatherCard(summary)
                 SuggestionCard(suggestion)
                 Button(
+                    shape = MaterialTheme.shapes.small,
                     onClick = {
                         vm.startLogFromSuggestion(suggestion.items)
                         onLogOutfit()
@@ -110,10 +113,10 @@ fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () 
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         when {
-                            vm.locationBlocked -> OutlinedButton(onClick = { openAppSettings(context) }) { Text("Open settings") }
-                            vm.needsLocationPermission -> OutlinedButton(onClick = onUseMyLocation) { Text("Allow location") }
+                            vm.locationBlocked -> OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { openAppSettings(context) }) { Text("Open settings") }
+                            vm.needsLocationPermission -> OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onUseMyLocation) { Text("Allow location") }
                         }
-                        OutlinedButton(onClick = { vm.refresh() }) { Text("Try again") }
+                        OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { vm.refresh() }) { Text("Try again") }
                     }
                 }
             }
@@ -162,9 +165,9 @@ private fun WeatherCard(w: WeatherSummary) {
 
 @Composable
 private fun SuggestionCard(s: Recommender.Suggestion) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    Card(Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Wear", style = MaterialTheme.typography.titleMedium)
+            SectionLabel("Wear")
             s.items.forEach { item ->
                 Text("${item.emoji}  ${item.name}", style = MaterialTheme.typography.titleLarge)
             }

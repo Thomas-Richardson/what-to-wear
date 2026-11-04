@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -128,7 +130,14 @@ fun App(vm: MainViewModel) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("What to Wear") }) },
+        topBar = {
+            TopAppBar(title = {
+                Text(
+                    "WHAT TO WEAR",
+                    style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 3.sp),
+                )
+            })
+        },
         bottomBar = {
             NavigationBar {
                 Tab.entries.forEach { t ->

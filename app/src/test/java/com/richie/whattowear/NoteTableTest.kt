@@ -126,4 +126,31 @@ class NoteTableTest {
         assertNotNull(NoteTable.parse(withColumns))
         assertNull(NoteTable.parse("No table here."))
     }
+
+    @Test
+    fun aRowWithMoreCellsThanTheHeadingsIsLeftOut() {
+        // On 1 Nov 2026 an old version of the app wrote a log into a doubled note, and Obsidian Sync
+        // merged it back with one cell too many, so everything after Score sat one column to the right.
+        val lines = withColumns.lines().toMutableList()
+        lines.add(
+            lines.indexOfFirst { it.startsWith("| 12") },
+            "| 10 | N | Hoodie, Shorts | A bit cold | 2 |  |  | 8.1 | 2026-01-15 morning | Somewhere | Rain |",
+        )
+        val table = NoteTable.parse(lines.joinToString("\n"))!!
+        assertNull(table.damage) // the rest of the note is fine, so logging carries on
+        val odd = table.rows.single { it.realTempC == 10.0 }
+        assertTrue(odd.extraCells)
+        assertNull(odd.toEntry()) // its feels-like and date would be read from the wrong columns
+        assertEquals(listOf(odd), table.rowsWithExtraCells)
+        assertEquals(2, table.rows.mapNotNull { it.toEntry() }.size)
+    }
+
+    @Test
+    fun aHeadingWithTwoNamesGluedTogetherIsDamage() {
+        // What Obsidian Sync left on 1 Nov 2026: "Counted as" and "Score" run together in one heading.
+        val garbled = withColumns.lines().joinToString("\n") { line ->
+            if (line.startsWith("| Temperature")) line.replaceFirst("| Counted as", "| Counted as      Score") else line
+        }
+        assertEquals("a heading looks garbled (Counted as      Score)", NoteTable.parse(garbled)!!.damage)
+    }
 }

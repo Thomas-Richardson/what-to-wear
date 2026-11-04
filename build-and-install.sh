@@ -6,8 +6,8 @@ set -e
 cd "$(dirname "$0")"
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
-# The AI key for photo and description logging (OPENAI_API_KEY_WHATTOWEAR, or OPENAI_API_KEY_MISC).
-set -a; [ -f ~/.config/llm/env ] && . ~/.config/llm/env; set +a
+# No keys are loaded here on purpose: the app file must hold no secrets, because each version is
+# published as a GitHub release. The OpenAI key is pasted into the app on the phone instead.
 
 ./gradlew assembleDebug
 cp app/build/outputs/apk/debug/app-debug.apk "What to Wear.apk"

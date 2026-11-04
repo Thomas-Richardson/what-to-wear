@@ -75,7 +75,7 @@ fun AiFill(vm: MainViewModel) {
 
     Section("Fill in with AI") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = {
+            OutlinedButton(shape = MaterialTheme.shapes.small, onClick = {
                 try {
                     photoFile.parentFile?.mkdirs()
                     val uri = FileProvider.getUriForFile(context, "${context.packageName}.photos", photoFile)
@@ -86,6 +86,7 @@ fun AiFill(vm: MainViewModel) {
                 }
             }, enabled = vm.aiBusy == null) { Text("📷 Take photo") }
             OutlinedButton(
+                shape = MaterialTheme.shapes.small,
                 onClick = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 enabled = vm.aiBusy == null,
             ) { Text("🖼️ Choose photo") }

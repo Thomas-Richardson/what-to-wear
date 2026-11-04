@@ -33,6 +33,8 @@ He asked for a design that lets him "see both without duplicating", so the note 
 
 On 1 November 2026 the note was changed on the Mac (to add the app's columns) moments before Richie connected it on his phone, which still had the old version. Obsidian Sync kept both: the phone's copy of the table, then the Mac's, with a garbled heading row. The app misread every row and reported 92 it couldn't use. The note was put back from the correct version with nothing lost. Since then the app checks the table before reading or changing it. If it finds two heading rows or the same column twice, it says the note looks damaged and won't write to it, because editing a damaged table would only make it worse.
 
+Two more checks came from a second look at that day, on 3 November 2026. A log saved on the phone while it still had the doubled note was merged by Obsidian Sync into the repaired note in the wrong place, with one cell too many, so its feels-like temperature sat in the Date column. The app now leaves out any row with more cells than headings, and names it on the History tab, rather than learn from values in the wrong columns. It also treats a heading with two column names run together (like "Counted as Score", which is how the garbled heading looked) as damage.
+
 The app reaches the note through Android's file picker. Richie picks the note once and the app keeps permission to read and write that one file. Obsidian Sync carries the changes to his Mac, and when he reopens the app it reads the note again, so edits made on the Mac show up.
 
 ## Richie's four columns stay first
@@ -49,7 +51,7 @@ The model is OpenAI's gpt-6.1-terra, the closest match on his account to what he
 
 The AI never saves anything by itself. It ticks the clothes, and Richie checks them and saves as usual, because an AI that misreads a photo would otherwise teach the app the wrong outfit. Its answer replaces the earlier ticks, because a photo or a description is the whole outfit. Clothes that aren't on the list come back as "＋ Add" buttons, so his own clothes list grows as he goes. When he describes the outfit, his words go in the note's "What I wore" column and the app's reading in "Counted as", the same shape as his rows from before the app.
 
-The app talks to OpenAI directly, without a server of its own, which keeps it free of accounts and sign-ins. That means the key has to be inside the app. It's added when the app is built on his Mac, from his key file, so it never reaches the public repository. The cost is that anyone with the app file could dig the key out, which is why the app file isn't for sharing, and why a separate key with a spending limit is the safer choice.
+The app talks to OpenAI directly, without a server of its own, which keeps it free of accounts and sign-ins. That means the key has to be on the phone. Up to version 0.10 it was built into the app file on his Mac, so the file couldn't be shared. From 0.11 Richie pastes the key once on the History tab and it stays in the app's private storage on the phone. That keeps the app file free of secrets, which is what lets each version be published on GitHub for the update button (below). A separate key with a spending limit is still the safer choice.
 
 ## A reminder at 5pm
 
@@ -79,11 +81,17 @@ The app expects tens of logs. With that little data a complex model would mostly
 
 Two rules came from Richie's note. Cold hands come up six times in it, so gloves and a scarf go on automatically once it's cold enough, even when the outfit is otherwise warm enough. And clothes that never appear in the note or his logs (a puffer jacket, a fleece) are almost never suggested, because early versions suggested them and he doesn't seem to wear them.
 
-## A native Android app, installed from Google Drive
+## Richie's own branding
 
-Richie asked for an Android app for his Pixel 8a, so it is a native app written in Kotlin with Jetpack Compose. It uses the phone's location and file picker directly. Apart from the weather service it needs nothing online.
+In 0.11 Richie asked to "reskin the app in my Richie branding". His brand is written up in his Main vault ("My signature art style (brand)") as an optimistic, minimal 1920s–30s Art Deco style in navy, burgundy, forest green, ivory and gold, with Futura-like type. The app now uses exactly those colours instead of the phone's wallpaper colours, light or dark to match the phone. Futura is a paid font and this repository is public, so the app bundles Jost, a free font modelled on it. Gold is used for lines and borders, never for text on ivory, because it's too pale to read there. The 1 to 5 buttons run cold to hot through the palette (navy, slate, forest green, gold, burgundy), so the colour carries meaning as well as the number. The same rules are kept as the `richie-branding` skill on his Mac, so other things made for him match.
 
-It isn't on the Play Store, because it's "just for me" for now and that would mean a developer account and a review process. New versions go into his Google Drive, and he taps the file to update. That costs a few taps per update, and it ties updates to the Mac that built the first version, because Android only installs an update signed with the same key. The key is `~/.android/debug.keystore` on that Mac and must not be lost.
+## A native Android app, updated from GitHub
+
+Richie asked for an Android app for his Pixel 8a, so it is a native app written in Kotlin with Jetpack Compose. It uses the phone's location and file picker directly. Apart from the weather service, the AI fill-in and the update check, it needs nothing online.
+
+It isn't on the Play Store, because it's "just for me" for now and that would mean a developer account and a review process. Up to 0.10, new versions went into his Google Drive and he tapped the file to update. He then asked for "an update button that fetches the latest version", so from 0.11 each version is published as a GitHub release, and **Check for updates** on the History tab downloads it and hands it to Android's installer. GitHub was chosen over Drive because the app can read a public release without signing in to anything, while reading his private Drive would need a Google sign-in inside the app. Publishing is safe because the app file no longer holds a key. Android asks him to confirm an update from outside the Play Store, at least the first time, and an app can't switch that off. The Drive copy stays as a backup for a fresh install.
+
+Updates still have to be built on the Mac that built the first version, because Android only installs an update signed with the same key. The key is `~/.android/debug.keystore` on that Mac and must not be lost.
 
 ## Storage: a note and a small file
 

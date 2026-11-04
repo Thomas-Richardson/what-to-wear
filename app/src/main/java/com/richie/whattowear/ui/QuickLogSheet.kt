@@ -115,6 +115,7 @@ fun QuickLogSheet(vm: MainViewModel, onClose: () -> Unit) {
                 }
 
                 Button(
+                    shape = MaterialTheme.shapes.small,
                     onClick = vm::saveDraft,
                     enabled = !vm.saving && d.feeling != null && d.itemIds.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth(),

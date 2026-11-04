@@ -25,20 +25,23 @@ import java.util.Base64
 
 /**
  * Asks OpenAI's gpt-6.1-terra what Richie is wearing, from a photo or his own words. Only called
- * when he taps a button, and nothing is kept afterwards. The key is put into the app when it's
- * built on his Mac (from his key file), so it's never in the repository.
+ * when he taps a button, and nothing is kept afterwards. The key is one he pastes on the History tab:
+ * it lives only on his phone (see Settings.aiKey), never in the app file or the repository.
  */
 object AiClient {
     private val json = Json { ignoreUnknownKeys = true }
 
-    val isSetUp: Boolean get() = BuildConfig.OPENAI_KEY.isNotBlank()
+    /** Set from Settings when the app starts, and again when he saves or removes a key. */
+    @Volatile var key: String = ""
+
+    val isSetUp: Boolean get() = key.isNotBlank()
 
     suspend fun fromDescription(words: String): AiOutfit = ask(words, null)
 
     suspend fun fromPhoto(jpeg: ByteArray): AiOutfit = ask(null, Base64.getEncoder().encodeToString(jpeg))
 
     private suspend fun ask(words: String?, photoBase64: String?): AiOutfit = withContext(Dispatchers.IO) {
-        if (!isSetUp) throw IOException("The AI isn't set up in this version of the app (it was built without a key).")
+        if (!isSetUp) throw IOException("The AI isn't set up yet. Add your OpenAI key on the History tab, then try again.")
         val clothes = Wardrobe.items
         val reply = post(OutfitReader.request(BuildConfig.AI_MODEL, clothes, words, photoBase64))
         val content = json.parseToJsonElement(reply).jsonObject["choices"]?.jsonArray?.firstOrNull()
@@ -53,7 +56,7 @@ object AiClient {
         connection.doOutput = true
         connection.connectTimeout = 15_000
         connection.readTimeout = 60_000
-        connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.OPENAI_KEY}")
+        connection.setRequestProperty("Authorization", "Bearer $key")
         connection.setRequestProperty("Content-Type", "application/json")
         try {
             connection.outputStream.use { it.write(body.toByteArray()) }

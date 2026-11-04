@@ -139,7 +139,7 @@ fun LogScreen(vm: MainViewModel, onUseMyLocation: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Button(onClick = vm::saveDraft, enabled = !vm.saving, modifier = Modifier.fillMaxWidth()) {
+        Button(shape = MaterialTheme.shapes.small, onClick = vm::saveDraft, enabled = !vm.saving, modifier = Modifier.fillMaxWidth()) {
             Text(if (vm.saving) "Saving…" else "Save")
         }
     }
@@ -281,11 +281,13 @@ fun FeelingRow(selected: Feeling?, onPick: (Feeling) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Feeling.entries.forEach { f ->
             val on = selected == f
+            // Picked: filled in its colour on the cold-to-hot scale. Not picked: paper with a thin edge in that colour.
             Surface(
                 onClick = { onPick(f) },
                 shape = MaterialTheme.shapes.medium,
-                color = if (on) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                border = if (on) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                color = if (on) feelingColor(f) else MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = if (on) onFeelingColor(f) else MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(if (on) 2.dp else 1.dp, if (on) MaterialTheme.colorScheme.outline else feelingColor(f)),
                 modifier = Modifier.weight(1f),
             ) {
                 Column(
