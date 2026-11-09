@@ -13,8 +13,8 @@ android {
         applicationId = "com.richie.whattowear"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.11"
+        versionCode = 12
+        versionName = "0.12"
 
         // The AI model's name. The key is NOT built in: Richie pastes it on the History tab and it stays
         // on his phone, so the app file holds no secrets and can be published as a GitHub release.

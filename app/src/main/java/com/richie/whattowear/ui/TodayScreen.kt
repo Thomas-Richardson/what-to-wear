@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,10 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,7 +46,7 @@ import com.richie.whattowear.model.degRange
 fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () -> Unit, onConnectNote: () -> Unit) {
     val recommender = remember(vm.entries, vm.customClothes) { Recommender(vm.entries) }
     val summary = vm.todaySummary()
-    val suggestion = remember(summary, recommender) { summary?.let(recommender::suggest) }
+    val cards = remember(summary, recommender) { summary?.let(recommender::suggestions).orEmpty() }
     var choosingPlace by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -81,22 +78,12 @@ fun TodayScreen(vm: MainViewModel, onUseMyLocation: () -> Unit, onLogOutfit: () 
         if (vm.noteName == null || vm.noteProblem != null) NoteCard(vm, onConnectNote)
 
         when {
-            summary != null && suggestion != null -> {
+            summary != null && cards.isNotEmpty() -> {
                 WeatherCard(summary)
-                SuggestionCard(suggestion)
-                Button(
-                    shape = MaterialTheme.shapes.small,
-                    onClick = {
-                        vm.startLogFromSuggestion(suggestion.items)
-                        onLogOutfit()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Log what I wore") }
-                Text(
-                    "Starts from this suggestion. Change anything you didn't wear.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                OutfitCards(cards) { items ->
+                    vm.startLogFromSuggestion(items)
+                    onLogOutfit()
+                }
             }
             vm.loading -> Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -159,21 +146,6 @@ private fun WeatherCard(w: WeatherSummary) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun SuggestionCard(s: Recommender.Suggestion) {
-    Card(Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionLabel("Wear")
-            s.items.forEach { item ->
-                Text("${item.emoji}  ${item.name}", style = MaterialTheme.typography.titleLarge)
-            }
-            Spacer(Modifier.width(4.dp))
-            Text(s.reason, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            s.notes.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
         }
     }
 }

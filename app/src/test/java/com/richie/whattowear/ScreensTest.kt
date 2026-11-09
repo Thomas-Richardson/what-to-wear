@@ -2,6 +2,7 @@ package com.richie.whattowear
 
 import android.app.Application
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
@@ -9,10 +10,13 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -21,6 +25,7 @@ import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.richie.whattowear.model.Feeling
 import com.richie.whattowear.model.OutfitReader
+import com.richie.whattowear.model.Recommender
 import com.richie.whattowear.model.TimeOfDay
 import com.richie.whattowear.model.Wardrobe
 import com.richie.whattowear.reminder.ReminderWorker
@@ -29,6 +34,7 @@ import com.richie.whattowear.ui.ClothesPicker
 import com.richie.whattowear.ui.FeelingRow
 import com.richie.whattowear.ui.HistoryScreen
 import com.richie.whattowear.ui.LogScreen
+import com.richie.whattowear.ui.OutfitCards
 import com.richie.whattowear.ui.QuickLogSheet
 import com.richie.whattowear.ui.WhatToWearTheme
 import org.junit.After
@@ -91,6 +97,27 @@ class ScreensTest {
         compose.onNodeWithText("Gilet", substring = true).performClick()
         assertEquals("gilet", toggled)
         compose.onAllNodesWithText("Add your own").assertCountEquals(5)
+    }
+
+    @Test
+    fun swipingShowsTheNextOutfitAndLoggingStartsFromTheOneShowing() {
+        fun outfit(vararg ids: String) = Recommender.Suggestion(ids.map { Wardrobe.byId(it)!! }, "Because.", emptyList(), null)
+        val cards = listOf(
+            outfit("tshirt", "hoodie", "trousers"),
+            outfit("shirt", "blazer", "trousers"),
+            outfit("rugby", "gilet", "trackies"),
+        )
+        var logged: List<String>? = null
+        compose.setContent { WhatToWearTheme { OutfitCards(cards) { items -> logged = items.map { it.id } } } }
+        compose.onNodeWithText("1 of 3").assertIsDisplayed()
+        compose.onNodeWithText("Starts from the outfit showing", substring = true).assertExists()
+        compose.onNodeWithText("Log what I wore").performClick()
+        assertEquals(listOf("tshirt", "hoodie", "trousers"), logged)
+
+        compose.onNodeWithTag("outfits").performTouchInput { swipeLeft() }
+        compose.waitForIdle()
+        compose.onNodeWithText("Log what I wore").performClick()
+        assertEquals(listOf("shirt", "blazer", "trousers"), logged)
     }
 
     @Test

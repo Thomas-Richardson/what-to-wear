@@ -88,7 +88,7 @@ class Recommender(
 
         if (lastSimilar != null && lastSimilar.feeling == Feeling.JUST_RIGHT) {
             // Sun gear depends on today's sky, not the old day's (no sunglasses because last time was sunny).
-            val clothes = lastSimilar.items.filterNot { it.forSun }
+            val clothes = inWearingOrder(lastSimilar.items.filterNot { it.forSun })
             return Suggestion(
                 items = withRainCover(clothes, weather) + sunItems(weather),
                 reason = "Last time it felt like ${deg(lastSimilar.dressTempC)} " +
@@ -108,6 +108,95 @@ class Recommender(
             "Learnt from your ${plural(logsUsed, "log")}: about what you like to wear when it feels like ${deg(t)}."
         }
         return Suggestion(outfitFor(weather, warmthNeeded(t)), reason, notes, null)
+    }
+
+    /**
+     * Up to [MAX_OUTFITS] different outfits that would all suit this weather, for the cards on the Today tab.
+     *
+     * The first is always [suggest]'s answer, so the first card and the widget agree. Then come other
+     * outfits that felt just right in weather like this (your newest logs first, then rows from before the
+     * app), then other combinations about as warm as you like. Each card differs from every card before it
+     * in at least one of top, layer, jacket, bottoms or leggings. Hats, gloves and the like don't count as a
+     * difference, because they come and go with the cold, not with the outfit. Made-up combinations try to
+     * differ in two of those first, so the cards aren't five copies of one outfit with a different top.
+     */
+    fun suggestions(weather: WeatherSummary): List<Suggestion> {
+        val first = suggest(weather)
+        val cards = mutableListOf(first)
+        fun isNew(items: List<ClothingItem>, minChanges: Int) = cards.none { changes(it.items, items) < minChanges }
+
+        for (day in pastOutfitsThatFeltRight(weather)) {
+            if (cards.size >= MAX_OUTFITS) break
+            val items = withRainCover(inWearingOrder(day.items.filterNot { it.forSun }), weather) + sunItems(weather)
+            if (isNew(items, 1)) cards += Suggestion(items, pastDayReason(day), first.notes, day)
+        }
+
+        val t = weather.dressTempC
+        val target = warmthNeeded(t)
+        // Sorting keeps tied outfits in the order they were tried, so the best one is the same as outfitFor's.
+        val ranked = allOutfits(weather, target).sortedBy { it.second }
+        val (best, bestScore) = ranked.firstOrNull() ?: return cards
+        // On a bitter day even the warmest outfit can fall short, so allow as big a gap as the best one has.
+        val allowedGap = maxOf(abs(best.sumOf { it.warmth } - target), ALTERNATIVE_WARMTH_GAP)
+        val close = ranked.filter { (outfit, score) ->
+            score <= bestScore + ALTERNATIVE_SLACK &&
+                abs(outfit.sumOf { it.warmth } - target) <= allowedGap + 1e-9 &&
+                // Never bring in clothes you've never logged (a puffer, say), unless the best outfit needs them too.
+                outfit.all { worn(it) || it in best }
+        }
+        for (minChanges in listOf(2, 1)) for ((outfit, _) in close) {
+            if (cards.size >= MAX_OUTFITS) break
+            val items = outfit + sunItems(weather)
+            if (isNew(items, minChanges)) cards += Suggestion(items, warmthReason(outfit, target, t), first.notes, null)
+        }
+        return cards
+    }
+
+    /**
+     * Logs and note rows in weather like this (within 2°C, same rain or not) that felt just right: dated ones
+     * newest first, then the rows from before the app, closest temperature first. An outfit is left out if you
+     * wore it again later in weather like this and it didn't feel right that time.
+     */
+    private fun pastOutfitsThatFeltRight(weather: WeatherSummary): List<Entry> {
+        val similar = entries.filter {
+            abs(it.dressTempC - weather.dressTempC) <= SIMILAR_WITHIN_C && it.rainy == weather.rainy &&
+                it.items.any { item -> item.slot != Slot.EXTRA }
+        }
+        val outfitOf = similar.associateWith { groups(it.items) }
+        fun isLater(a: Entry, b: Entry): Boolean = when {
+            a.date == null -> false
+            b.date == null -> true
+            else -> a.date > b.date || (a.date == b.date && a.endsAtMinute > b.endsAtMinute)
+        }
+        fun wentWrongLater(e: Entry) = similar.any { other ->
+            other.feeling != Feeling.JUST_RIGHT && isLater(other, e) && outfitOf[other] == outfitOf[e]
+        }
+        return similar
+            .filter { it.feeling == Feeling.JUST_RIGHT && !wentWrongLater(it) }
+            .sortedWith(
+                compareBy<Entry> { it.date == null }
+                    .thenByDescending { it.date }
+                    .thenByDescending { it.endsAtMinute }
+                    .thenBy { abs(it.dressTempC - weather.dressTempC) },
+            )
+    }
+
+    private fun pastDayReason(e: Entry): String = when {
+        e.date != null ->
+            "On ${dayLabel(e)} it felt like ${deg(e.dressTempC)}. You wore this and it felt just right."
+        e.realTempC != null ->
+            "Your note says this felt just right at ${deg(e.realTempC)} (feels like about ${deg(e.dressTempC)})."
+        else -> "Your note says this felt just right when it felt like ${deg(e.dressTempC)}."
+    }
+
+    private fun warmthReason(outfit: List<ClothingItem>, target: Double, t: Double): String {
+        val gap = outfit.sumOf { it.warmth } - target
+        val basis = if (logsUsed == 0) "the starter guess for" else "what you like at"
+        return when {
+            gap > SAME_WARMTH -> "A touch warmer than $basis feels-like ${deg(t)}."
+            gap < -SAME_WARMTH -> "A touch lighter than $basis feels-like ${deg(t)}."
+            else -> "About as warm as $basis feels-like ${deg(t)}."
+        }
     }
 
     /** What the warmth line alone suggests on a plain dry day. Shown on the History tab. */
@@ -162,7 +251,15 @@ class Recommender(
     }
 
     /** Tries every sensible combination and picks the one closest to the warmth you want. */
-    private fun outfitFor(weather: WeatherSummary, target: Double): List<ClothingItem> {
+    private fun outfitFor(weather: WeatherSummary, target: Double): List<ClothingItem> =
+        // minBy keeps the first of any tie, so earlier items in the clothes list win, as before.
+        allOutfits(weather, target).minByOrNull { it.second }?.first.orEmpty() + sunItems(weather)
+
+    /**
+     * Every sensible combination (without sun gear), each with its score: how far its warmth is from
+     * [target], plus small costs that favour fewer items and clothes you actually wear. Lower is better.
+     */
+    private fun allOutfits(weather: WeatherSummary, target: Double): List<Pair<List<ClothingItem>, Double>> {
         val t = weather.dressTempC
         val ok = Wardrobe.items.filter { allowedAt(it, t) }
         val tops = ok.filter { it.slot == Slot.TOP }
@@ -177,20 +274,18 @@ class Recommender(
         val umbrellaChoices = if (weather.rainy) listOf(false, true) else listOf(false)
         val costOf = (ok + umbrella).associateWith { cost(it, weather) }
 
-        var best = emptyList<ClothingItem>()
-        var bestScore = Double.MAX_VALUE
+        val outfits = mutableListOf<Pair<List<ClothingItem>, Double>>()
         for (top in tops) for (layer in layers) for (jacket in jackets) for (bottom in bottoms)
             for (thermal in under) for (withUmbrella in umbrellaChoices) {
                 if (weather.rainy && jacket?.keepsRainOff != true && !withUmbrella) continue
+                // A rain jacket and an umbrella together is never the answer (it only ever scored worse anyway).
+                if (withUmbrella && jacket?.keepsRainOff == true) continue
                 val outfit = listOfNotNull(top, layer, jacket, bottom, thermal) + coldExtras +
                     (if (withUmbrella) listOf(umbrella) else emptyList())
                 val score = abs(outfit.sumOf { it.warmth } - target) + outfit.sumOf { costOf.getValue(it) }
-                if (score < bestScore) {
-                    bestScore = score
-                    best = outfit
-                }
+                outfits += outfit to score
             }
-        return best + sunItems(weather)
+        return outfits
     }
 
     /**
@@ -260,6 +355,31 @@ class Recommender(
         const val UNFAMILIAR_COST = 0.4
         const val NEVER_WORN_COST = 0.8
         const val DRY_RAIN_GEAR_COST = 0.5
+        /** The most cards the Today tab shows. */
+        const val MAX_OUTFITS = 5
+        /** A made-up alternative must score within this of the best one (warmth gap plus the small costs). */
+        const val ALTERNATIVE_SLACK = 0.6
+        /** …and be within this much warmth of what you like (or as close as the best outfit gets). A "too cold" means about 1 point short. */
+        const val ALTERNATIVE_WARMTH_GAP = 0.6
+        /** Within this much warmth, a card says "about as warm"; beyond it, "a touch warmer" or "lighter". */
+        const val SAME_WARMTH = 0.25
+
+        /**
+         * A logged outfit in the order you'd put it on (top, layer, jacket, bottoms, leggings, extras), because
+         * rows in the note list clothes in whatever order they were written, e.g. "Blazer, Gloves, Shirt".
+         */
+        internal fun inWearingOrder(items: List<ClothingItem>) = items.sortedWith(compareBy({ it.slot.ordinal }, { it.wornUnder }))
+
+        /** Each group of an outfit (top, layer, jacket, bottoms, leggings) and what's in it. Extras are left out. */
+        private fun groups(items: List<ClothingItem>): Map<Pair<Slot, Boolean>, Set<String>> =
+            items.filter { it.slot != Slot.EXTRA }.groupBy({ it.slot to it.wornUnder }, { it.id }).mapValues { it.value.toSet() }
+
+        /** How many groups differ between two outfits: a different top is 1, a different top and jacket is 2. */
+        fun changes(a: List<ClothingItem>, b: List<ClothingItem>): Int {
+            val ga = groups(a)
+            val gb = groups(b)
+            return (ga.keys + gb.keys).count { ga[it] != gb[it] }
+        }
     }
 }
 

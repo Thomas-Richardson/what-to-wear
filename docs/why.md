@@ -10,9 +10,13 @@ The project is also practice. In his words: "It is just fun practise at building
 
 His measure of success: "If I find it effortless to remember to log and I've logged maybe 20, 30 entries."
 
-## One plain answer each morning
+## One plain answer each morning, with others to swipe through
 
-The Today tab shows a single outfit, a one-line reason and a few notes (rain, wind, a big swing in temperature). It doesn't show a forecast to interpret. Richie said he will look every morning "at what the app says and choose appropriately", so the answer has to be readable at a glance. Each suggestion says why it was made, for example which past day it copied, so he can judge whether to trust it. The home-screen widget shows the same answer, so he doesn't have to open the app to see it.
+The Today tab leads with one outfit, a one-line reason and a few notes (rain, wind, a big swing in temperature). It doesn't show a forecast to interpret. Richie said he will look every morning "at what the app says and choose appropriately", so the answer has to be readable at a glance. Each suggestion says why it was made, for example which past day it copied, so he can judge whether to trust it. The home-screen widget shows the same first answer, so he doesn't have to open the app to see it.
+
+From 0.12 the outfit is the first of up to five cards. Richie asked for this on 9 November 2026: "multiple outfits can be appropriate for the same temperature. Can I have it so I can swipe through cards, like a little carousel, where I can swipe through the possible outfits that would suit a given day?" The first card is still the app's best answer, so a glance still works. After it come other outfits that felt just right in weather like this (his logs first, then the rows from before the app), then other combinations about as warm as he likes. Real outfits that felt right come before made-up ones because they're the stronger evidence. Each card still says why it's there.
+
+A few rules keep the cards useful. Every card has to be a different outfit: a different top, layer, jacket, bottoms or leggings. Gloves and scarves don't count, because they come with the cold. Made-up cards try to differ in two of those first, so the cards aren't five copies of one outfit with a different top. A made-up card is only shown if it's about as warm as the best one, and it never brings in clothes he has never logged, such as a puffer. An outfit from a past day is left out if he wore it again later in similar weather and it didn't feel right. Five is the most, because past that it stops being a quick look. **Log what I wore** starts from whichever card is showing, so swiping to what he actually put on and tapping it is the quickest log.
 
 ## Logging takes a few taps
 
@@ -20,7 +24,7 @@ Richie wants capture to be effortless: "I want capture of new data to be effortl
 
 - **Now is the default, and sits on the top row.** Most logs will be made in the moment, so "Now" is selected when the Log tab opens. Richie asked for it to sit on the top row with Today, Yesterday and Earlier. While Now is picked, the morning, afternoon, evening and all-day choices are hidden, because Now already says when.
 - **A Log button on the home screen.** Richie asked to "literally just click a Log button from my home screen" instead of opening the app and then the Log tab. The widget's 1 to 5 buttons open a small window over the home screen, so a log takes two taps: the score, then Save. The first tap doesn't save on its own, because the widget can't know what he's wearing. The window shows the clothes it will log, already ticked, so a different outfit can be fixed before it teaches the app the wrong thing. If he has already logged that day, it starts from that outfit, since he's probably still wearing it.
-- **"Log what I wore" pre-fills the suggestion.** Usually only a tick or two needs changing.
+- **"Log what I wore" pre-fills the outfit on the card showing.** Usually only a tick or two needs changing.
 - **How it felt is five big buttons.** It takes one tap.
 - **You can add your own clothes from the Log tab.** Richie asked for this so that anything missing from the list can be added on the spot, without leaving the log.
 - **No accounts and no sign-in.** Richie wants as little friction as possible: no signing in to things and no clicking through screens. The weather service, Open-Meteo, needs no account or key.

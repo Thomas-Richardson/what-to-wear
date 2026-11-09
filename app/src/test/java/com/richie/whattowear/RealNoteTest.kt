@@ -36,7 +36,10 @@ class RealNoteTest {
         val rows = NoteTable.parse(note.readText())!!.rows
         val usable = rows.mapNotNull { it.toEntry() }
         assertTrue("only ${usable.size} usable rows", usable.size >= 43)
-        assertTrue(usable.all { it.unknownClothes.isEmpty() })
+        // Only the rows from before the app (no date). Newer rows can name clothes Richie added on his phone,
+        // such as a bow tie, and that list lives on the phone, not on this computer.
+        val old = usable.filter { it.date == null }
+        assertTrue(old.filterNot { it.unknownClothes.isEmpty() }.map { it.unknownClothes }.toString(), old.all { it.unknownClothes.isEmpty() })
     }
 
     @Test
@@ -61,6 +64,20 @@ class RealNoteTest {
         for (real in 0..24 step 2) for (windy in listOf(false, true)) {
             val got = ids(real.toDouble(), windy)
             assertTrue("$real°C windy=$windy: $got", got.none { it in neverWorn })
+        }
+    }
+
+    @Test
+    fun noCardSuggestsClothesTheNoteNeverMentions() {
+        val neverWorn = setOf("puffer", "jumper", "fleece", "longsleeve", "beanie", "cap")
+        val r = recommender()
+        for (real in 0..24 step 2) for (windy in listOf(false, true)) for (rain in listOf(false, true)) {
+            val f = Calibration.feelsLike(real.toDouble(), windy)
+            val w = WeatherSummary(f, f, f, f, if (rain) 80 else 0, if (rain) 3.0 else 0.0, 10.0, 1.0, 0.0, if (rain) 61 else 3)
+            for (card in r.suggestions(w)) {
+                val got = card.items.map { it.id }
+                assertTrue("$real°C windy=$windy rain=$rain: $got", got.none { it in neverWorn })
+            }
         }
     }
 
