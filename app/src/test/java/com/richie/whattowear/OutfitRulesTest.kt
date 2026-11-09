@@ -35,38 +35,70 @@ class OutfitRulesTest {
 
     @Test
     fun everyOutfitIsSomethingYouCouldPutOn() {
-        for (r in recommenders) for (t in temps) for (rain in listOf(false, true)) {
-            val items = r.suggest(weather(t, rain)).items
+        for (r in recommenders) for (t in temps) for (rain in listOf(false, true)) for (card in r.suggestions(weather(t, rain))) {
+            val items = card.items
             val label = "$t°C rain=$rain: ${items.map { it.id }}"
             assertEquals(label, 1, items.count { it.slot == Slot.TOP })
             assertTrue(label, items.count { it.slot == Slot.LAYER } <= 1)
             assertTrue(label, items.count { it.slot == Slot.JACKET } <= 1)
             assertEquals(label, 1, items.count { it.slot == Slot.BOTTOM && !it.wornUnder })
             assertTrue(label, items.count { it.wornUnder } <= 1)
+            assertTrue("$label: rain jacket and umbrella", items.count { it.keepsRainOff } <= 1)
         }
+    }
+
+    @Test
+    fun theCardsAreDifferentOutfitsAndThereAreNeverMoreThanFive() {
+        for (r in recommenders) for (t in temps) for (rain in listOf(false, true)) {
+            val cards = r.suggestions(weather(t, rain))
+            val label = "$t°C rain=$rain: ${cards.map { c -> c.items.map { it.id } }}"
+            assertTrue(label, cards.size in 1..Recommender.MAX_OUTFITS)
+            for (i in cards.indices) for (j in i + 1 until cards.size) {
+                assertTrue(label, Recommender.changes(cards[i].items, cards[j].items) >= 1)
+            }
+        }
+    }
+
+    @Test
+    fun madeUpCardsAreAboutAsWarmAsYouLike() {
+        for (r in recommenders) for (t in temps) {
+            // On a dry, cloudy day the best made-up outfit is the one the History tab shows.
+            val bestGap = kotlin.math.abs(r.typicalOutfit(t).sumOf { it.warmth } - r.warmthNeeded(t))
+            val allowed = maxOf(bestGap, Recommender.ALTERNATIVE_WARMTH_GAP) + 1e-9
+            val cards = r.suggestions(weather(t))
+            for (card in cards.drop(1).filter { it.fromPastDay == null }) {
+                val gap = card.items.sumOf { it.warmth } - r.warmthNeeded(t)
+                assertTrue("$t°C: ${card.items.map { it.id }} is $gap off", kotlin.math.abs(gap) <= allowed)
+            }
+        }
+        // Even on a bitter day, when nothing is quite warm enough, there's more than one card.
+        assertTrue(Recommender(emptyList(), today).suggestions(weather(-8.0)).size > 1)
     }
 
     @Test
     fun rainGearComesOutWhenItRainsAndNotWhenItDoesnt() {
         val r = Recommender(emptyList(), today)
         for (t in temps) {
-            assertTrue("$t°C wet", r.suggest(weather(t, rain = true)).items.any { it.keepsRainOff })
-            assertTrue("$t°C dry", r.suggest(weather(t)).items.none { it.keepsRainOff })
+            for (card in r.suggestions(weather(t, rain = true))) assertTrue("$t°C wet", card.items.any { it.keepsRainOff })
+            for (card in r.suggestions(weather(t))) assertTrue("$t°C dry", card.items.none { it.keepsRainOff })
         }
     }
 
     @Test
     fun sunGearOnlyOnSunnyDays() {
-        for (r in recommenders) for (t in temps) {
-            assertTrue("$t°C cloudy", r.suggest(weather(t)).items.none { it.forSun })
+        for (r in recommenders) for (t in temps) for (card in r.suggestions(weather(t))) {
+            assertTrue("$t°C cloudy", card.items.none { it.forSun })
         }
-        assertTrue(Recommender(emptyList(), today).suggest(weather(20.0, sun = true)).items.any { it.id == "sunglasses" })
+        for (card in Recommender(emptyList(), today).suggestions(weather(20.0, sun = true))) {
+            assertTrue(card.items.any { it.id == "sunglasses" })
+        }
     }
 
     @Test
     fun hatsScarvesAndGlovesOnlyWhenItsColdEnough() {
-        for (r in recommenders) for (t in temps) {
-            val extras = r.suggest(weather(t)).items.filter { it.slot == Slot.EXTRA && it.warmth > 0 }
+        // Outfits copied from a past day keep what you wore that day, so this checks the made-up ones.
+        for (r in recommenders) for (t in temps) for (card in r.suggestions(weather(t)).filter { it.fromPastDay == null }) {
+            val extras = card.items.filter { it.slot == Slot.EXTRA && it.warmth > 0 }
             assertTrue("$t°C: $extras", extras.all { r.allowedAt(it, t) })
         }
     }
@@ -89,7 +121,7 @@ class OutfitRulesTest {
     fun staysQuickWithYearsOfLogs() {
         val lots = (0 until 2000).map { someLogs[it % someLogs.size].copy(key = "log:$it", date = today.minusDays(it.toLong())) }
         val started = System.nanoTime()
-        Recommender(lots, today).suggest(weather(11.0, rain = true))
+        Recommender(lots, today).suggestions(weather(11.0, rain = true))
         val ms = (System.nanoTime() - started) / 1_000_000
         assertTrue("took $ms ms", ms < 2000)
     }

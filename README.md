@@ -8,7 +8,7 @@ The reasons behind each design choice are in [docs/why.md](docs/why.md).
 
 ## What the app does
 
-The **Today** tab finds where you are (through Google's location service, which uses Wi-Fi, phone masts and GPS, or Android's own sources on phones without it), gets the hour-by-hour forecast and suggests an outfit for the rest of the day (until 10pm) or the next 3 hours. It dresses you for the "feels like" temperature, which allows for wind and humidity, and leans towards the coldest part of the time you're out. It adds a rain jacket or umbrella when rain is likely, sunglasses when it's sunny, and gloves and a scarf when it's cold. Under the suggestion it says why, for example "Last time it felt like 11°C (Sat 31 Oct in San Francisco) you wore this and it felt just right." If it can't find you, it says which step failed (no permission, location switched off, or no reading) and offers the fix, or you can pick a place.
+The **Today** tab finds where you are (through Google's location service, which uses Wi-Fi, phone masts and GPS, or Android's own sources on phones without it), gets the hour-by-hour forecast and suggests an outfit for the rest of the day (until 10pm) or the next 3 hours. It dresses you for the "feels like" temperature, which allows for wind and humidity, and leans towards the coldest part of the time you're out. It adds a rain jacket or umbrella when rain is likely, sunglasses when it's sunny, and gloves and a scarf when it's cold. Under the suggestion it says why, for example "Last time it felt like 11°C (Sat 31 Oct in San Francisco) you wore this and it felt just right." Swipe the outfit sideways to see up to four more that would also suit the day: other outfits that felt just right in weather like this, then other combinations about as warm as you like. Each card says why it's there, the diamonds underneath show which card you're on, and **Log what I wore** starts from the card showing. If it can't find you, it says which step failed (no permission, location switched off, or no reading) and offers the fix, or you can pick a place.
 
 The **Log** tab records what you wore and how it felt. "When" defaults to **Now**, which uses the weather for the last hour and this one. You can also pick today, yesterday or any day up to three months back, and a part of the day (morning, afternoon, evening or all day). You tick your clothes, which are pre-filled if you tapped "Log what I wore" on the Today tab, and rate how it felt on a 1 to 5 scale: 1 way too cold, 2 too cold, 3 just right, 4 too warm, 5 too hot. Each group of clothes has an **Add your own** button for anything that isn't listed. Instead of ticking, you can **fill in with AI**: take or choose a photo of what you're wearing, or describe it in your own words ("tweed jacket, chinos, my pea coat"). OpenAI's gpt-6.1-terra ticks the matching clothes, says if it's unsure of anything, and offers a "＋ Add" button for clothes that aren't on the list. You check the ticks and save as usual. When you describe the outfit, your own words go in the note's "What I wore" column and the app's reading in "Counted as". The quick-log window from the widget has the same buttons. The app looks up the weather for that time and place itself.
 
@@ -52,6 +52,8 @@ The learning is deliberately simple, so every suggestion can be explained. The c
 
 For each suggestion the app tries every sensible combination (one top, an optional layer, an optional jacket, bottoms, optional leggings, the cold-weather extras and an umbrella if needed) and picks the one closest to the warmth you want.
 
+The other cards on the Today tab (`Recommender.suggestions`) come from the same pieces. First come outfits from dated logs within 2°C (same rain or not) that felt just right, newest first. Then come rows from before the app, closest temperature first. Last come the next-best combinations from the search above. Each card must differ from the ones before it in at least one of top, layer, jacket, bottoms or leggings, and the made-up ones first try to differ in two. A made-up card must be about as warm as the best one (within 0.6 warmth points of what you like, or as close as the best gets on a bitter day) and must not bring in clothes you've never logged. An outfit from a past day is skipped if you wore it again later in similar weather and it didn't feel just right. There are at most five cards.
+
 Richie's note records the real temperature, but the app works in feels-like. `analysis/calibrate_note_temperatures.py` measures the gap from a year of Manchester weather: feels-like is about 2°C below the real temperature on a calm 10°C day and about 4°C below on a windy one. The graphs it draws are in `analysis/`.
 
 ## Installing and updating on the phone
@@ -82,15 +84,15 @@ That builds `What to Wear.apk` in the project folder, and installs it if a phone
 cd ~/Documents/"What to wear app" && ./gradlew testDebugUnitTest
 ```
 
-There are 95 tests, in `app/src/test`, and none of them goes online:
+There are 104 tests, in `app/src/test`, and none of them goes online:
 
 | Kind | Files | What they check |
 | --- | --- | --- |
-| Outfit logic | `RecommenderTest`, `OutfitRulesTest`, `QuickLogTest`, `CustomClothingTest` | Learning from logs, plus rules that must hold in any weather from -8°C to 32°C: one top and one pair of bottoms, never two jackets, rain gear exactly when it rains, colder never means less warmth |
+| Outfit logic | `RecommenderTest`, `OutfitRulesTest`, `QuickLogTest`, `CustomClothingTest` | Learning from logs, plus rules that must hold for every card in any weather from -8°C to 32°C: one top and one pair of bottoms, never two jackets, rain gear exactly when it rains, colder never means less warmth, every card a different outfit and never more than five |
 | Your note | `NoteTableTest`, `NoteDetailsTest`, `RealNoteTest` | Adding or removing a log changes exactly one line, odd table shapes are read safely, a table doubled by Obsidian Sync or a garbled heading is caught, a row with more cells than headings is left out, and logs move into the note unchanged |
 | Updates | `UpdateCheckTest` | Reading GitHub's "latest release" reply (a real one, saved), only ever downloading from this repository, and comparing version numbers as numbers |
 | Weather | `WeatherParsingTest`, `NowTest`, `FeelingTest` | Real replies from the weather service, saved in `app/src/test/resources` (Manchester over the weekend the clocks went back), checked against figures worked out separately |
-| Screens and widget | `ScreensTest`, `WidgetTest` | Tapping the 1 to 5 buttons, the Log tab's Now choice, adding your own clothes, the quick-log window, the reminder switch and its 5pm timing, and what the widget shows |
+| Screens and widget | `ScreensTest`, `WidgetTest` | Tapping the 1 to 5 buttons, swiping between outfit cards and logging the one showing, the Log tab's Now choice, adding your own clothes, the quick-log window, the reminder switch and its 5pm timing, and what the widget shows |
 
 The screen tests run on Robolectric, a tool that imitates an Android phone inside an ordinary test, so they need no emulator. `RealNoteTest` reads Richie's actual note from `~/Documents/Main` and skips itself on any other computer, so the repository never needs a copy of his data. GitHub runs every test whenever code is pushed (the badge at the top shows the latest result). The first run on a new computer downloads Robolectric's files, which takes a few minutes.
 
@@ -106,6 +108,7 @@ For trying the app without a phone there is an emulator (a pretend phone on the 
 | `data/NoteStore.kt` | Opens the note on the phone through Android's file picker |
 | `data/WeatherClient.kt` | Gets forecasts and place names from Open-Meteo |
 | `ui/` | The Today, Log and History tabs, and the quick-log window |
+| `ui/OutfitCards.kt` | The outfit cards you swipe through on the Today tab |
 | `ui/Theme.kt` | Richie's branding: colours, the Jost font, corner shapes, the gold divider and the 1 to 5 colours |
 | `update/` | The update button: checks GitHub, downloads the new version and hands it to Android's installer |
 | `QuickLogActivity.kt` | Opens the quick-log window over the home screen, from the widget or the reminder |
@@ -133,7 +136,7 @@ The OpenAI key is one Richie pastes on the History tab. It's kept only in the ap
 
 ## Status
 
-Version 0.11, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
+Version 0.12, November 2026. Richie's measure of success: it feels effortless to remember to log, and he has logged 20 to 30 entries. Ideas not yet built are listed at the end of [docs/why.md](docs/why.md).
 
 ## Licence and credits
 

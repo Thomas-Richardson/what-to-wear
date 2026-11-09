@@ -131,6 +131,54 @@ class RecommenderTest {
     }
 
     @Test
+    fun theFirstCardIsTheSameAsTheSuggestion() {
+        val logs = listOf(
+            log(3, 13.0, Feeling.JUST_RIGHT, "shirt", "fleece", "trousers"),
+            log(1, 13.5, Feeling.JUST_RIGHT, "tshirt", "blazer", "trousers"),
+        )
+        for (r in listOf(Recommender(emptyList(), today), Recommender(logs, today))) for (t in listOf(2.0, 13.0, 22.0)) {
+            assertEquals("$t°C", r.suggest(weather(t)), r.suggestions(weather(t)).first())
+        }
+    }
+
+    @Test
+    fun otherDaysThatFeltJustRightInWeatherLikeThisBecomeCards() {
+        val older = log(5, 13.0, Feeling.JUST_RIGHT, "shirt", "fleece", "trousers")
+        val newer = log(1, 14.5, Feeling.JUST_RIGHT, "tshirt", "blazer", "trousers")
+        val cards = Recommender(listOf(older, newer), today).suggestions(weather(14.0))
+        assertEquals(newer, cards[0].fromPastDay)
+        assertEquals(older, cards[1].fromPastDay)
+        assertEquals(listOf("shirt", "fleece", "trousers"), cards[1].items.map { it.id })
+        assertEquals("On Mon 26 Oct in Testville it felt like 13°C. You wore this and it felt just right.", cards[1].reason)
+    }
+
+    @Test
+    fun anOutfitThatLaterFeltWrongInTheSameWeatherIsLeftOut() {
+        val fine = log(5, 13.0, Feeling.JUST_RIGHT, "shirt", "fleece", "trousers")
+        val laterCold = log(3, 13.5, Feeling.TOO_COLD, "shirt", "fleece", "trousers")
+        val latest = log(1, 14.0, Feeling.JUST_RIGHT, "tshirt", "blazer", "trousers")
+        val cards = Recommender(listOf(fine, laterCold, latest), today).suggestions(weather(14.0))
+        assertTrue(cards.map { it.fromPastDay }.toString(), cards.none { it.fromPastDay == fine })
+    }
+
+    @Test
+    fun aCopiedOutfitIsListedInTheOrderYouPutItOn() {
+        val past = log(2, 5.0, Feeling.JUST_RIGHT, "blazer", "gloves", "thermals", "shirt", "trousers")
+        val ids = Recommender(listOf(past), today).suggest(weather(5.0)).items.map { it.id }
+        assertEquals(listOf("shirt", "blazer", "trousers", "thermals", "gloves"), ids)
+    }
+
+    @Test
+    fun madeUpCardsSayHowWarmTheyAreComparedWithWhatYouLike() {
+        val r = Recommender(emptyList(), today)
+        val cards = r.suggestions(weather(12.0))
+        assertTrue("only ${cards.size} cards", cards.size >= 3)
+        for (c in cards.drop(1)) {
+            assertTrue(c.reason, Regex("^(About as warm as|A touch warmer than|A touch lighter than) the starter guess for feels-like 12°C\\.$").matches(c.reason))
+        }
+    }
+
+    @Test
     fun learnsYouWearShortsWhenItIsCooler() {
         val shorts = Wardrobe.byId("shorts")!!
         assertFalse(Recommender(emptyList(), today).allowedAt(shorts, 15.0))
